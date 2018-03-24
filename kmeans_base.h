@@ -5,6 +5,7 @@
 #include <numeric>
 #include <istream>
 #include <cassert>
+#include <mpi.h>
 
 // Type used for real values
 typedef double real;
@@ -38,19 +39,40 @@ public:
 
    // Get dimension
    unsigned int getN ( void ) const { return n; }
+
+   // Get vector raw data (for communication)
+   real * data ( void ) { return coords.data(); }
+   const real * data ( void ) const { return coords.data(); }
+
+   // Label get and set
+   unsigned int getLabel ( void ) const { return label; }
+   void setLabel ( unsigned int l ) { label = l; }
 };
 
 // Squared distance between two points
 real dist2 ( const point &, const point & );
 
+// Element-wise operations between points
+// Useful for calculating centroids
+point operator+ ( const point &, const point & );
+point& operator+= ( const point &, const point & );
+point operator/ ( const point &, real );
+
+// Routines for communicating point via MPI
+// When sending point with these routines, only the coordinates are sent
+// Therefore, the dimension of the point has to be known in advance by the
+// receiving process when calling mpi_point_recv
+void  mpi_point_send ( unsigned int, const point& ); // Send point
+point mpi_point_recv ( unsigned int, unsigned int ); // Receive point
+
 // K-means solver base class
 class kMeansBase {
 private:
    // Number of clusters we are looking for
-   unsigned int k;
+   unsigned int k = 1;
 
    // Dimensions of the points
-   unsigned int n;
+   unsigned int n = 1;
 
    // Points of the data set
    std::vector<point> dataset;
