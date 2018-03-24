@@ -18,11 +18,6 @@ int main ( int argc, char * argv[] ) {
    // concurrently, instead of having rank 0 receive it and then send it to the
    // other processes
 
-   std::ifstream file ( "./benchmarks/s1.txt" );
-   kMeansBase km ( file );
-
-   clog << "READ FILE : " << km.size() << " entries" << endl;
-
    MPI_Finalize();
    return 0;
 }

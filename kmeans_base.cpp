@@ -45,6 +45,16 @@ point mpi_point_recv ( unsigned int src, unsigned int n ) {
    return point ( n, coords );
 }
 
+void kMeansBase::setK ( unsigned int kk ) {
+   std::default_random_engine eng;
+   std::uniform_int_distribution dist ( 0, kk );
+
+   k = kk;
+   for ( auto & pt : dataset ) {
+      pt.setLabel ( dist() );
+   }
+}
+
 void kMeansBase::computeCentroids ( void ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );

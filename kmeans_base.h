@@ -6,6 +6,7 @@
 #include <istream>
 #include <cassert>
 #include <mpi.h>
+#include <random>
 
 // Type used for real values
 typedef double real;
@@ -90,7 +91,8 @@ public:
    kMeansBase ( std::istream& in ) { in >> (*this); }
 
    // Getter and setter for the number of clusters
-   void setK ( unsigned int kk ) { k = kk; }
+   // Setting k also assigns random labels to the points in the dataset
+   void setK ( unsigned int );
    unsigned int getK ( void ) const { return k; }
 
    // Get the dimension of the points
@@ -101,7 +103,7 @@ public:
 
    // Virtual solve function
    // Each derived class shall implement their own solving algorithm
-   // void solve ( void ) = 0;
+   void solve ( void ) = 0;
 
    // Function to recompute the centroids
    void computeCentroids ( void );
