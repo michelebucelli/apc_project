@@ -11,7 +11,7 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	mpirun -np 4 ./$(EXE)
+	mpirun -np 4 ./$(EXE) >output.txt
 
 %.o : kmeans_base.h kmeans.h kmeans_sdg.h
 
@@ -20,3 +20,4 @@ clean :
 
 distclean : clean
 	rm -f $(EXE)
+	rm -f output.txt

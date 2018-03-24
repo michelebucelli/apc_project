@@ -4,9 +4,11 @@
 #include <vector>
 #include <numeric>
 #include <istream>
+#include <ostream>
 #include <cassert>
 #include <mpi.h>
 #include <random>
+#include <algorithm>
 
 // Type used for real values
 typedef double real;
@@ -50,6 +52,11 @@ public:
    void setLabel ( unsigned int l ) { label = l; }
 };
 
+// Output the point on a stream
+// Format: single line,
+// <label> <coord. 0> <coord. 1> ... <coord. N>
+std::ostream& operator<< ( std::ostream&, const point& );
+
 // Squared distance between two points
 real dist2 ( const point &, const point & );
 
@@ -68,7 +75,7 @@ point mpi_point_recv ( unsigned int, unsigned int ); // Receive point
 
 // K-means solver base class
 class kMeansBase {
-private:
+protected:
    // Number of clusters we are looking for
    unsigned int k = 1;
 
@@ -83,6 +90,7 @@ private:
    std::vector<point> centroids;
 
    friend std::istream& operator>> ( std::istream&, kMeansBase& );
+   friend std::ostream& operator<< ( std::ostream&, const kMeansBase& );
 public:
    // Constructor
    kMeansBase ( unsigned int nn, const std::vector<point> & pts ) :
@@ -103,14 +111,28 @@ public:
 
    // Virtual solve function
    // Each derived class shall implement their own solving algorithm
-   void solve ( void ) = 0;
+   virtual void solve ( void ) = 0;
 
    // Function to recompute the centroids
+   // Computation is executed in parallel
    void computeCentroids ( void );
 };
 
 // Read a dataset from an input stream and stores it into a kmeans object
-// File format : <dimension of the points> <coordinates 1> <coordinates 2> ...
+// File format:
+// <dimension of the points>
+// <coordinates 0>
+// <coordinates 1>
+// ...
 std::istream& operator>> ( std::istream&, kMeansBase & );
+
+// Output the results on a stream
+// Output file format:
+// <dimension of the points>
+// <number of clusters>
+// <label 0> <coordinates 0>
+// <label 1> <coordinates 1>
+// ...
+std::ostream& operator<< ( std::ostream&, const kMeansBase & );
 
 #endif

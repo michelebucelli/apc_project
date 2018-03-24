@@ -1,5 +1,16 @@
 #include "kmeans_base.h"
 
+std::ostream& operator<< ( std::ostream& out, const point &pt ) {
+   out << pt.getLabel() << " ";
+
+   unsigned int i = 0;
+   for ( ; i < pt.getN() - 1; ++i )
+      out << pt[i] << " ";
+   out << pt[i];
+   
+   return out;
+}
+
 real dist2 ( const point& a, const point& b ) {
    assert ( a.getN() == b.getN() );
 
@@ -47,11 +58,11 @@ point mpi_point_recv ( unsigned int src, unsigned int n ) {
 
 void kMeansBase::setK ( unsigned int kk ) {
    std::default_random_engine eng;
-   std::uniform_int_distribution dist ( 0, kk );
+   std::uniform_int_distribution<int> dist ( 0, kk );
 
    k = kk;
    for ( auto & pt : dataset ) {
-      pt.setLabel ( dist() );
+      pt.setLabel ( dist(eng) );
    }
 }
 
@@ -112,4 +123,13 @@ std::istream& operator>> ( std::istream &in, kMeansBase &km ) {
    }
 
    return in;
+}
+
+std::ostream& operator<< ( std::ostream &out, const kMeansBase &km ) {
+   out << km.n << "\n" << km.k << "\n";
+
+   for ( const auto &i : km.dataset )
+      out << i << "\n";
+
+   return out;
 }
