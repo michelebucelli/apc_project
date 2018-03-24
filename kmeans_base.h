@@ -1,101 +1,92 @@
 #ifndef _KMEANS_BASE_H
 #define _KMEANS_BASE_H
 
-#include <array>
 #include <vector>
 #include <numeric>
 #include <istream>
+#include <cassert>
 
 // Type used for real values
 typedef double real;
 
-// Type used for points
-// Template parameter N is the dimension (number of coordinates) of the point
-template < unsigned int N >
-using point = std::array<real,N>;
-
 // Class used for labelled points
-// Template parameter N is the dimension
-template < unsigned int N >
-class labPoint : point<N> {
+class point {
 private:
+   // Dimension of the point
+   unsigned int n;
+
+   // Vector of the coordinates of the point
+   std::vector<real> coords;
+
+   // Label of the points (indicates the cluster to which the point belongs)
    unsigned int label;
 
 public:
-   labPoint ( const point<N> &p, unsigned int l = 0 ) : point<N>(p), label(l) { }
+   point ( unsigned int nn ) : n(nn), coords(nn,0) { }
+   point ( unsigned int nn, std::vector<real> cc ) : n(nn), coords(cc) { coords.resize(nn); }
+
+   // Coordinate access : operator[]
+   real& operator[] ( unsigned int idx ) {
+      assert ( idx < n );
+      return coords[idx];
+   }
+
+   const real& operator[] ( unsigned int idx ) const {
+      assert ( idx < n );
+      return coords[idx];
+   }
+
+   // Get dimension
+   unsigned int getN ( void ) const { return n; }
 };
 
 // Squared distance between two points
-template < unsigned int N >
-real dist2 ( const point<N> &a, const point<N> &b ) {
-   real sum = 0;
-   for ( size_t i = 0; i < N; ++i ) {
-      real x = a[i] - b[i];
-      sum += x*x;
-   }
-   return sum;
-}
+real dist2 ( const point &, const point & );
 
 // K-means solver base class
-template < unsigned int N >
 class kMeansBase {
 private:
    // Number of clusters we are looking for
    unsigned int k;
 
+   // Dimensions of the points
+   unsigned int n;
+
    // Points of the data set
-   std::vector<labPoint<N>> dataset;
+   std::vector<point> dataset;
 
    // Centroids
    // Centroid for cluster of label 0 is centroids[0], etc...
-   std::vector<point<N>> centroids;
+   std::vector<point> centroids;
 
+   friend std::istream& operator>> ( std::istream&, kMeansBase& );
 public:
    // Constructor
-   kMeansBase ( const std::vector<point<N>> & pts ) {
-      for ( const auto & pt : pts )
-         dataset.emplace_back ( pt );
-   };
+   kMeansBase ( unsigned int nn, const std::vector<point> & pts ) :
+      n(nn), dataset(pts) { }
 
    kMeansBase ( std::istream& in ) { in >> (*this); }
-
-   // Function to add a point
-   void addPoint ( const point<N>& p ) {
-      dataset.push_back( labPoint<N>(p) );
-   }
 
    // Getter and setter for the number of clusters
    void setK ( unsigned int kk ) { k = kk; }
    unsigned int getK ( void ) const { return k; }
 
+   // Get the dimension of the points
+   unsigned int getN ( void ) const { return n; }
+
    // Get the dimension of the dataset
-   size_t size ( void ) const { return dataset.size(); }
+   unsigned int size ( void ) const { return dataset.size(); }
 
    // Virtual solve function
    // Each derived class shall implement their own solving algorithm
    // void solve ( void ) = 0;
 
    // Function to recompute the centroids
-   void computeCentroids ( void ) {
-   }
+   void computeCentroids ( void );
 };
 
-template < unsigned int N >
-std::istream& operator>> ( std::istream& in, kMeansBase<N> &km ) {
-   unsigned int n = 0;
-   real tmp = 0;
-   point<N> p;
-
-   while ( in >> tmp ) {
-      p[n] = tmp;
-      if ( n == N-1 ) {
-         km.addPoint ( p );
-         n = 0;
-      }
-      else n++;
-   }
-
-   return in;
-}
+// Read a dataset from an input stream and stores it into a kmeans object
+// File format : <dimension of the points> <coordinates 1> <coordinates 2> ...
+std::istream& operator>> ( std::istream&, kMeansBase & );
 
 #endif

@@ -7,7 +7,7 @@ using std::cout;
 using std::endl;
 
 int main () {
-   kMeansBase<2> b ( cin );
+   kMeansBase b ( cin );
    cout << b.size() << endl;
    return 0;
 }
