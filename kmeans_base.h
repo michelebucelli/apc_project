@@ -6,14 +6,10 @@
 #include <istream>
 #include <ostream>
 #include <cassert>
-#include <mpi.h>
 #include <random>
 #include <algorithm>
 
-#include <iostream>
-
-using std::clog;
-using std::endl;
+#include <mpi.h>
 
 // Type used for real values
 typedef double real;

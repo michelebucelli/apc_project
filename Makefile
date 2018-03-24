@@ -11,10 +11,10 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	mpirun -np 4 ./$(EXE) >$(OUTPUT)
+	./$(EXE) >$(OUTPUT)
 
 plot : $(OUTPUT)
-	gnuplot -c plotScript.plt -p
+	gnuplot -dc plotScript.plt -p
 
 %.o : kmeans_base.h kmeans.h kmeans_sdg.h
 
