@@ -25,15 +25,17 @@ int main ( int argc, char * argv[] ) {
       clog << "Input file:    ./benchmarks/s1.txt" << endl;
       clog << "N. of samples: " << solver.size() << endl;
       clog << "Dimension:     " << solver.getN() << endl;
-   }
 
-   solver.setK ( 15 );
-   solver.solve();
+      solver.setK(15);
+      solver.solve();
+   }
 
    if ( rank == 0 ) {
       cout << solver;
    }
 
+   MPI_Barrier ( MPI_COMM_WORLD );
    MPI_Finalize();
+
    return 0;
 }

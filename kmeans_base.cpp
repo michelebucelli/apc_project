@@ -7,7 +7,7 @@ std::ostream& operator<< ( std::ostream& out, const point &pt ) {
    for ( ; i < pt.getN() - 1; ++i )
       out << pt[i] << " ";
    out << pt[i];
-   
+
    return out;
 }
 
@@ -29,6 +29,16 @@ point operator+ ( const point& a, const point& b ) {
    point result ( a.getN() );
    for ( unsigned int i = 0; i < a.getN(); ++i )
       result[i] = a[i] + b[i];
+
+   return result;
+}
+
+point operator- ( const point& a, const point& b ) {
+   assert ( a.getN() == b.getN() );
+
+   point result ( a.getN() );
+   for ( unsigned int i = 0; i < a.getN(); ++i )
+      result[i] = a[i] - b[i];
 
    return result;
 }
@@ -57,13 +67,34 @@ point mpi_point_recv ( unsigned int src, unsigned int n ) {
 }
 
 void kMeansBase::setK ( unsigned int kk ) {
-   std::default_random_engine eng;
-   std::uniform_int_distribution<int> dist ( 0, kk );
-
    k = kk;
-   for ( auto & pt : dataset ) {
-      pt.setLabel ( dist(eng) );
+   centroids = std::vector<point> ( kk, point(n) );
+}
+
+void kMeansBase::randomize ( void ) {
+   int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
+   int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
+
+   if ( rank == 0 ) {
+      std::default_random_engine eng;
+      std::uniform_int_distribution<unsigned int> dist ( 0, k - 1 );
+
+      for ( auto & pt : dataset ) {
+         unsigned int lab = dist(eng);
+         pt.setLabel ( lab );
+
+         for ( int i = 1; i < size; ++i )
+            MPI_Send ( &lab, 1, MPI_UNSIGNED, i, 0, MPI_COMM_WORLD );
+      }
    }
+
+   else for ( auto & pt : dataset ) {
+      unsigned int lab = 0;
+      MPI_Recv ( &lab, 1, MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+      pt.setLabel ( lab );
+   }
+
+   if ( rank == 0 ) clog << "RANDOMIZED INITIAL LABELS" << endl;
 }
 
 void kMeansBase::computeCentroids ( void ) {
@@ -81,30 +112,43 @@ void kMeansBase::computeCentroids ( void ) {
    std::vector<unsigned int> localCounts ( k, 0 );
 
    for ( unsigned int i = rank; i < dataset.size(); i += size ) {
-      localSums[dataset[i].getLabel()] += dataset[i];
-      localCounts[dataset[i].getLabel()] += 1;
+      unsigned int l = dataset[i].getLabel();
+      localSums[l] += dataset[i];
+      localCounts[l]++;
    }
 
    std::vector<unsigned int> globalCounts ( k, 0 );
 
    // Global counts are obtained reducing the local counts
-   MPI_Reduce ( localCounts.data(), globalCounts.data(), k, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+   MPI_Reduce ( localCounts.data(), globalCounts.data(), k, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD );
 
    // Rank 0 : collects the partial sums from the others, then performs the average
+   // and send the result to all other processes
    if ( rank == 0 ) {
       std::vector<point> globalSums = localSums;
 
       for ( int i = 1; i < size; ++i ) // For each other process
          for ( unsigned int kk = 0; kk < k; ++kk ) // and for each cluster
-            globalSums[kk] += mpi_point_recv ( i, n );
+            globalSums[kk] += mpi_point_recv ( i, n ); // Receive the local sum
 
+      // Computes the centroids
       for ( unsigned int kk = 0; kk < k; ++kk )
          centroids[kk] = globalSums[kk] / globalCounts[kk];
+
+      // Sends the centroids to all other processes
+      for ( int i = 1; i < size; ++i )
+         for ( unsigned int kk = 0; kk < k; ++kk )
+            mpi_point_send ( i, centroids[kk] );
    }
 
-   // Other ranks : send their partial sums to rank 0
-   else for ( const point& pt : localSums )
-      mpi_point_send ( 0, pt );
+   // Other ranks : send their partial sums to rank 0, then receive the centroids
+   else {
+      for ( const point& pt : localSums )
+         mpi_point_send ( 0, pt );
+
+      for ( unsigned int kk = 0; kk < k; ++kk )
+         centroids[kk] = mpi_point_recv ( 0, n );
+   }
 }
 
 std::istream& operator>> ( std::istream &in, kMeansBase &km ) {

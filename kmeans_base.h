@@ -10,6 +10,11 @@
 #include <random>
 #include <algorithm>
 
+#include <iostream>
+
+using std::clog;
+using std::endl;
+
 // Type used for real values
 typedef double real;
 
@@ -23,11 +28,11 @@ private:
    std::vector<real> coords;
 
    // Label of the points (indicates the cluster to which the point belongs)
-   unsigned int label;
+   unsigned int label = 0;
 
 public:
    point ( unsigned int nn ) : n(nn), coords(nn,0) { }
-   point ( unsigned int nn, std::vector<real> cc ) : n(nn), coords(cc) { coords.resize(nn); }
+   point ( unsigned int nn, std::vector<real> cc ) : n(nn), coords(cc) { coords.resize(nn,0); }
 
    // Coordinate access : operator[]
    real& operator[] ( unsigned int idx ) {
@@ -63,7 +68,8 @@ real dist2 ( const point &, const point & );
 // Element-wise operations between points
 // Useful for calculating centroids
 point operator+ ( const point &, const point & );
-point& operator+= ( const point &, const point & );
+point operator- ( const point &, const point & );
+point& operator+= ( point &, const point & );
 point operator/ ( const point &, real );
 
 // Routines for communicating point via MPI
@@ -99,9 +105,13 @@ public:
    kMeansBase ( std::istream& in ) { in >> (*this); }
 
    // Getter and setter for the number of clusters
-   // Setting k also assigns random labels to the points in the dataset
    void setK ( unsigned int );
    unsigned int getK ( void ) const { return k; }
+
+   // Assigns random labels to the points of the dataset
+   // Must be called after k has been set
+   // Process 0 generates the values and then sends them to the other processes
+   void randomize ( void );
 
    // Get the dimension of the points
    unsigned int getN ( void ) const { return n; }
