@@ -3,7 +3,7 @@ CXXFLAGS = -Wall -std=c++14
 
 OBJECTS = main.o kmeans_base.o kmeans.o kmeans_sdg.o
 
-EXE = main
+EXE = main.out
 
 all : $(EXE)
 
@@ -18,5 +18,5 @@ run : $(EXE)
 clean :
 	rm -f *.o
 
-disclean : clean
+distclean : clean
 	rm -f $(EXE)
