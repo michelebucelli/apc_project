@@ -1,7 +1,7 @@
 #include "kmeans_base.h"
 
 std::ostream& operator<< ( std::ostream& out, const point &pt ) {
-   out << pt.getLabel() << " ";
+   out << pt.getLabel() << "; ";
 
    unsigned int i = 0;
    for ( ; i < pt.getN() - 1; ++i )
@@ -94,7 +94,7 @@ void kMeansBase::randomize ( void ) {
       pt.setLabel ( lab );
    }
 
-   if ( rank == 0 ) clog << "RANDOMIZED INITIAL LABELS" << endl;
+   if ( rank == 0 ) std::clog << "RANDOMIZED INITIAL LABELS" << std::endl;
 }
 
 void kMeansBase::computeCentroids ( void ) {
@@ -170,7 +170,7 @@ std::istream& operator>> ( std::istream &in, kMeansBase &km ) {
 }
 
 std::ostream& operator<< ( std::ostream &out, const kMeansBase &km ) {
-   out << km.n << "\n" << km.k << "\n";
+   out << "dim = " << km.n << "\n" << "clusters = " << km.k << "\n";
 
    for ( const auto &i : km.dataset )
       out << i << "\n";

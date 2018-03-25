@@ -3,8 +3,9 @@
 
 #include <vector>
 #include <numeric>
-#include <istream>
-#include <ostream>
+#include <iostream>
+// #include <istream>
+// #include <ostream>
 #include <cassert>
 #include <random>
 #include <algorithm>
@@ -14,7 +15,7 @@
 // Type used for real values
 typedef double real;
 
-// Class used for labelled points
+// Class used for labeled points
 class point {
 private:
    // Dimension of the point
@@ -42,14 +43,14 @@ public:
    }
 
    // Get dimension
-   unsigned int getN ( void ) const { return n; }
+   const unsigned int getN ( void ) const { return n; }
 
    // Get vector raw data (for communication)
    real * data ( void ) { return coords.data(); }
    const real * data ( void ) const { return coords.data(); }
 
    // Label get and set
-   unsigned int getLabel ( void ) const { return label; }
+   const unsigned int getLabel ( void ) const { return label; }
    void setLabel ( unsigned int l ) { label = l; }
 };
 

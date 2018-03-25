@@ -1,0 +1,10 @@
+Canale di comunicazione per cose non chiare:
+
+kmean_base.h:
+  lines 35, 40: operator[] e` unchecked. Propongo di usare at() come STL, ma troppo casino per cambiare tutto
+
+kmean_base.h:
+  line 46, 53: added const to return type
+
+kmean_base.h
+  varie: added words to outputs
