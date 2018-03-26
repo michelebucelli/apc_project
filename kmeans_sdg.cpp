@@ -14,7 +14,7 @@ void kMeansSDG::solve ( void ) {
    for ( unsigned int kk = 0; kk < k; ++kk )
       centroids[kk] = dataset[distro(eng)];
 
-   while ( iter < 1e5 ) {
+   while ( iter < 5*dataset.size() ) {
       // Pick a random entry in the dataset
       unsigned int idx = distro(eng);
 
@@ -39,7 +39,9 @@ void kMeansSDG::solve ( void ) {
          point diff = (dataset[idx] - centroids[nearestLabel]) / counts[nearestLabel];
          centroids[nearestLabel] += diff;
       }
-      
+
+      // Stopping criterion ?
+
       ++iter;
    }
 }

@@ -11,7 +11,7 @@ using std::endl;
 int main ( int argc, char * argv[] ) {
    kMeansSDG solver ( cin );
 
-   solver.setK(2);
+   solver.setK(15);
    solver.solve();
 
    cout << solver;

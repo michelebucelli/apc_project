@@ -1,7 +1,7 @@
 #include "kmeans_base.h"
 
 std::ostream& operator<< ( std::ostream& out, const point &pt ) {
-   out << pt.getLabel() << "; ";
+   out << pt.getLabel() << " ";
 
    unsigned int i = 0;
    for ( ; i < pt.getN() - 1; ++i )
