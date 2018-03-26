@@ -1,4 +1,5 @@
 #include "kmeans_sgd.h"
+#include "kmeans.h"
 
 #include <iostream>
 #include <fstream>
@@ -14,7 +15,7 @@ int main ( int argc, char * argv[] ) {
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 
    std::ifstream inputFile ( "./benchmarks/s1.txt" );
-   kMeansSGD solver ( inputFile );
+   kMeans solver ( inputFile );
 
    solver.setK(15);
    solver.solve();

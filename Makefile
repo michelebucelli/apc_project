@@ -13,7 +13,7 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	./$(EXE) >$(OUTPUT)
+	mpiexec -np 4 ./$(EXE) >$(OUTPUT)
 
 plot : $(OUTPUT)
 	gnuplot -dc plotScript.plt -p
