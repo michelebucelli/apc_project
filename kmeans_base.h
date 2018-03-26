@@ -4,8 +4,6 @@
 #include <vector>
 #include <numeric>
 #include <iostream>
-// #include <istream>
-// #include <ostream>
 #include <cassert>
 #include <random>
 #include <algorithm>
@@ -25,7 +23,7 @@ private:
    std::vector<real> coords;
 
    // Label of the points (indicates the cluster to which the point belongs)
-   unsigned int label = 0;
+   int label = -1;
 
 public:
    point ( unsigned int nn ) : n(nn), coords(nn,0) { }
@@ -50,8 +48,8 @@ public:
    const real * data ( void ) const { return coords.data(); }
 
    // Label get and set
-   const unsigned int getLabel ( void ) const { return label; }
-   void setLabel ( unsigned int l ) { label = l; }
+   const int getLabel ( void ) const { return label; }
+   void setLabel ( int l ) { label = l; }
 };
 
 // Output the point on a stream
@@ -105,11 +103,6 @@ public:
    void setK ( unsigned int );
    unsigned int getK ( void ) const { return k; }
 
-   // Assigns random labels to the points of the dataset
-   // Must be called after k has been set
-   // Process 0 generates the values and then sends them to the other processes
-   void randomize ( void );
-
    // Get the dimension of the points
    unsigned int getN ( void ) const { return n; }
 
@@ -119,10 +112,6 @@ public:
    // Virtual solve function
    // Each derived class shall implement their own solving algorithm
    virtual void solve ( void ) = 0;
-
-   // Function to recompute the centroids
-   // Computation is executed in parallel
-   void computeCentroids ( void );
 };
 
 // Read a dataset from an input stream and stores it into a kmeans object

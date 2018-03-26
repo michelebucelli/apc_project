@@ -1,5 +1,5 @@
-#ifndef _KMEANS_SDG_H
-#define _KMEANS_SDG_H
+#ifndef _KMEANS_SGD_H
+#define _KMEANS_SGD_H
 
 #include "kmeans_base.h"
 
@@ -11,10 +11,10 @@
 
 // Iterations stop when there are no more changes in the centroids
 
-class kMeansSDG : public kMeansBase {
+class kMeansSGD : public kMeansBase {
 public:
-   kMeansSDG ( unsigned int nn, const std::vector<point> & pts ) : kMeansBase ( nn, pts ) { }
-   kMeansSDG ( std::istream& in ) : kMeansBase(in) { };
+   kMeansSGD ( unsigned int nn, const std::vector<point> & pts ) : kMeansBase ( nn, pts ) { }
+   kMeansSGD ( std::istream& in ) : kMeansBase(in) { };
 
    void solve ( void ) override;
 };

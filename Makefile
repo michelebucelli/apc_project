@@ -1,7 +1,7 @@
 CXX = mpicxx
 CXXFLAGS = -Wall -std=c++14
 
-OBJECTS = main.o kmeans_base.o kmeans.o kmeans_sdg.o
+OBJECTS = main.o kmeans_base.o kmeans.o kmeans_sgd.o
 OUTPUT = output.txt
 EXE = main.out
 
@@ -13,12 +13,12 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	./$(EXE) >$(OUTPUT) <./benchmarks/$(TEST)
+	./$(EXE) >$(OUTPUT)
 
 plot : $(OUTPUT)
 	gnuplot -dc plotScript.plt -p
 
-%.o : kmeans_base.h kmeans.h kmeans_sdg.h
+%.o : kmeans_base.h kmeans.h kmeans_sgd.h
 
 clean :
 	rm -f *.o
