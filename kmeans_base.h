@@ -92,6 +92,12 @@ protected:
 
    friend std::istream& operator>> ( std::istream&, kMeansBase& );
    friend std::ostream& operator<< ( std::ostream&, const kMeansBase& );
+
+   // Iterations counter
+   unsigned int iter = 0;
+
+   // Maximum iterations allowed
+   unsigned int maxIter = 1000;
 public:
    // Constructor
    kMeansBase ( unsigned int nn, const std::vector<point> & pts ) :
@@ -112,6 +118,9 @@ public:
    // Virtual solve function
    // Each derived class shall implement their own solving algorithm
    virtual void solve ( void ) = 0;
+
+   // Get number of iterations performed
+   unsigned int getIter ( void ) const { return iter; }
 };
 
 // Read a dataset from an input stream and stores it into a kmeans object

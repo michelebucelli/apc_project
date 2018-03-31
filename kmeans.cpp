@@ -117,11 +117,19 @@ void kMeans::solve ( void ) {
 
    randomize();
 
-   int iter = 0;
+   iter = 0;
 
-   while ( iter < 100 ) {
+   // This flag is set to true if during this iteration there have been changes
+   // in the assignments of at least one of the points
+   unsigned changes = 1;
+
+   while ( iter < 100 && changes ) {
+      // Computes the centroids in the current configuration
       computeCentroids();
 
+      changes = 0;
+
+      // Assigns each point to the group of the closest centroid
       for ( unsigned int i = rank; i < dataset.size(); i += size ) {
          real nearestDist = dist2 ( dataset[i], centroids[0] );
          int nearestLabel = 0;
@@ -135,9 +143,11 @@ void kMeans::solve ( void ) {
             }
          }
 
+         if ( dataset[i].getLabel() != nearestLabel ) changes = 1;
          dataset[i].setLabel(nearestLabel);
       }
 
+      // Collects the assignments
       for ( int i = 0; i < int(dataset.size()); ++i ) {
          if ( i % size == rank ) {
             int lab = dataset[i].getLabel();
@@ -151,6 +161,9 @@ void kMeans::solve ( void ) {
             dataset[i].setLabel ( lab );
          }
       }
+
+      // Collects all the changes flags from all processes
+      MPI_Allreduce ( MPI_IN_PLACE, &changes, 1, MPI_UNSIGNED, MPI_LOR, MPI_COMM_WORLD );
 
       ++iter;
    }

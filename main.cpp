@@ -17,11 +17,13 @@ int main ( int argc, char * argv[] ) {
    std::ifstream inputFile ( "./benchmarks/s1.txt" );
    kMeans solver ( inputFile );
 
-   solver.setK(15);
-   solver.solve();
+   solver.setK (15);
+   solver.solve ();
 
-   if ( rank == 0 )
+   if ( rank == 0 ) {
+      clog << "Converged in " << solver.getIter() << " iterations" << endl;
       cout << solver;
+   }
 
    MPI_Finalize ();
    return 0;

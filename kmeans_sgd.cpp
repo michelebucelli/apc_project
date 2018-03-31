@@ -17,7 +17,7 @@ void kMeansSGD::solve ( void ) {
    std::default_random_engine eng(std::time(NULL));
    std::uniform_int_distribution<unsigned int> distro ( 0, dataset.size() - 1 );
 
-   unsigned int iter = 0;
+   iter = 0;
 
    // Count of elements in each class
    std::vector<unsigned int> counts ( k, 0 );
