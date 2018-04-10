@@ -17,6 +17,7 @@ private:
 public:
    kMeansSGD ( unsigned int nn, const std::vector<point> & pts ) : kMeansBase ( nn, pts ) { }
    kMeansSGD ( std::istream& in ) : kMeansBase(in) { };
+   kMeansSGD ( std::istream& datasetIn, std::istream& trueLabelsIn ) : kMeansBase ( datasetIn, trueLabelsIn ) { };
 
    void solve ( void ) override;
 

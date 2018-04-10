@@ -179,6 +179,58 @@ void kMeansBase::randomize ( void ) {
    }
 }
 
+void kMeansBase::getTrueLabels ( std::istream& in, int offset ) {
+   for ( auto & pt : dataset ) {
+      int tmp; in >> tmp;
+      pt.setTrueLabel ( tmp + offset );
+   }
+}
+
+real kMeansBase::purity ( void ) const {
+   int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
+   int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
+
+   // True labels of the clusters
+   std::vector<int> trueLabels ( k, -1 );
+
+   // Counts of the labels assigned to each cluster
+   // On the rows ( i.e. counts[i] ) we have the vector of the amounts of points
+   // for each label assigned to the cluster i ( that is : counts[i][j] is the
+   // number of points with true label j assigned to cluster i)
+   std::vector<std::vector<int>> counts ( k, std::vector<int>(k,0) );
+
+   // Iterate through the whole dataset and compute the counts
+   for ( unsigned int i = rank; i < dataset.size(); i += size )
+      counts[dataset[i].getLabel()][dataset[i].getTrueLabel()] += 1;
+
+   // Communicate the results and compute the true labels
+   for ( unsigned int kk = 0; kk < k; ++kk ) {
+      MPI_Allreduce ( MPI_IN_PLACE, counts[kk].data(), k, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+
+      int maxIdx = 0, maxCount = counts[kk][0];
+      for ( unsigned int j = 1; j < k; ++j ) {
+         if ( counts[kk][j] > maxCount ) {
+            maxCount = counts[kk][j];
+            maxIdx = j;
+         }
+      }
+
+      trueLabels[kk] = maxIdx;
+   }
+
+   // Compute purity
+   real result = 0;
+
+   for ( unsigned int i = rank; i < dataset.size(); i += size ) {
+      if ( dataset[i].getTrueLabel() == trueLabels[dataset[i].getLabel()] ) result += 1;
+   }
+
+   MPI_Allreduce ( MPI_IN_PLACE, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+
+   return result / dataset.size();
+   return 0;
+}
+
 std::istream& operator>> ( std::istream &in, kMeansBase &km ) {
    unsigned int i = 0;
    real tmp = 0;

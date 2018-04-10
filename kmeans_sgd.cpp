@@ -1,5 +1,4 @@
 #include "kmeans_sgd.h"
-#include <ctime>
 #include <iostream>
 using std::clog; using std::endl;
 
@@ -15,7 +14,7 @@ void kMeansSGD::solve ( void ) {
 
    // Size of each batch is in the member batchSize
 
-   std::default_random_engine eng(std::time(NULL));
+   std::default_random_engine eng;
    std::uniform_int_distribution<unsigned int> distro ( 0, dataset.size() - 1 );
 
    iter = 0;
@@ -28,11 +27,11 @@ void kMeansSGD::solve ( void ) {
    computeCentroids();
 
    // Compute initial counts
-   for ( int i = rank; i < dataset.size(); i += size )
+   for ( unsigned int i = rank; i < dataset.size(); i += size )
       counts [ dataset[i].getLabel() ]++;
    MPI_Allreduce ( MPI_IN_PLACE, counts.data(), k, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD );
 
-   unsigned changes = stoppingCriterion.minLabelChanges + 1;
+   int changes = stoppingCriterion.minLabelChanges + 1;
    real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
@@ -47,7 +46,7 @@ void kMeansSGD::solve ( void ) {
       std::vector<int> indices ( batchSize, -1 );
       if ( rank == 0 ) {
          indices[0] = distro(eng);
-         for ( unsigned int i = 1; i < batchSize; ++i ) {
+         for ( int i = 1; i < batchSize; ++i ) {
             do indices[i] = distro(eng);
             while ( find(indices.begin(), indices.begin() + i, indices[i]) != indices.begin() + i );
          }
@@ -55,7 +54,7 @@ void kMeansSGD::solve ( void ) {
 
       MPI_Bcast ( indices.data(), batchSize, MPI_INT, 0, MPI_COMM_WORLD );
 
-      for ( unsigned int i = rank; i < batchSize; i += size ) {
+      for ( int i = rank; i < batchSize; i += size ) {
          unsigned int idx = indices[i];
 
          // Find the nearest centroid
@@ -72,7 +71,7 @@ void kMeansSGD::solve ( void ) {
 
          if ( nearestLabel != dataset[idx].getLabel() ) {
             int oldLab = dataset[idx].getLabel();
-            
+
             // Update counts and centroids
             counts[nearestLabel] += 1;
             counts[oldLab] -= 1;
@@ -104,7 +103,7 @@ void kMeansSGD::solve ( void ) {
 
       // Rank 0 updates centroids, then sends them to the others
       if ( rank == 0 ) {
-         for ( unsigned int i = 0; i < batchSize; ++i ) {
+         for ( int i = 0; i < batchSize; ++i ) {
             int label = dataset[indices[i]].getLabel();
             counts[label] += 1;
 

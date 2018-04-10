@@ -11,7 +11,7 @@ void kMeans::solve ( void ) {
    iter = 0;
 
    // This variable counts how many points have changed label during each iteration
-   unsigned changes = stoppingCriterion.minLabelChanges + 1;
+   int changes = stoppingCriterion.minLabelChanges + 1;
    real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 

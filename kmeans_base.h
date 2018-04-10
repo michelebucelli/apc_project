@@ -26,6 +26,9 @@ private:
    // Label of the points (indicates the cluster to which the point belongs)
    int label = -1;
 
+   // True label of the point
+   int trueLabel = -1;
+
 public:
    point ( unsigned int nn ) : n(nn), coords(nn,0) { }
    point ( unsigned int nn, std::vector<real> cc ) : n(nn), coords(cc) { coords.resize(nn,0); }
@@ -51,6 +54,10 @@ public:
    // Label get and set
    const int getLabel ( void ) const { return label; }
    void setLabel ( int l ) { label = l; }
+
+   // True label get and set
+   const int getTrueLabel ( void ) const { return trueLabel; }
+   void setTrueLabel ( int l ) { trueLabel = l; }
 };
 
 // Output the point on a stream
@@ -109,7 +116,7 @@ protected:
    friend std::ostream& operator<< ( std::ostream&, const kMeansBase& );
 
    // Iterations counter
-   unsigned int iter = 0;
+   int iter = 0;
 
    // Stopping criterion
    kMeansStop stoppingCriterion;
@@ -118,7 +125,15 @@ public:
    kMeansBase ( unsigned int nn, const std::vector<point> & pts ) :
       n(nn), dataset(pts) { }
 
+   // Constructor: reads the dataset from the given input stream
    kMeansBase ( std::istream& in ) { in >> (*this); }
+
+   // Constructor: reads the dataset from the first input stream, and gets the
+   // true labels from the second input stream
+   kMeansBase ( std::istream& datasetIn, std::istream& trueLabelsIn ) {
+      datasetIn >> (*this);
+      getTrueLabels(trueLabelsIn);
+   }
 
    // Getter and setter for the number of clusters
    void setK ( unsigned int );
@@ -153,6 +168,17 @@ public:
    // Must be called after k has been set
    // Process 0 generates the values and then sends them to the other processes
    void randomize ( void );
+
+   // Reads the true labels from an input stream
+   // The labels are assumed to be in the same order as the points in the dataset
+   void getTrueLabels ( std::istream&, int = -1 );
+
+   // Compute and return the purity of the clustering
+   // Each cluster is assigned to the true label that is most frequent in it, then
+   // we sum up the assignments to that label. Purity is the fraction of points in
+   // the dataset that were assigned to the corresponding "true" cluster
+   // True labels need to be set for the function to work (use getTrueLabels for that...)
+   real purity ( void ) const;
 };
 
 // Read a dataset from an input stream and stores it into a kmeans object
