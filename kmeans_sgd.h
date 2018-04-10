@@ -12,11 +12,17 @@
 // Iterations stop when there are no more changes in the centroids
 
 class kMeansSGD : public kMeansBase {
+private:
+   int batchSize = 20;
 public:
    kMeansSGD ( unsigned int nn, const std::vector<point> & pts ) : kMeansBase ( nn, pts ) { }
    kMeansSGD ( std::istream& in ) : kMeansBase(in) { };
 
    void solve ( void ) override;
+
+   // Batch size get-set
+   int getBatchSize ( void ) const { return batchSize; }
+   void setBatchSize ( int bs ) { batchSize = bs; }
 };
 
 #endif

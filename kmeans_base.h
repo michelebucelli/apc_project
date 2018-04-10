@@ -7,6 +7,7 @@
 #include <cassert>
 #include <random>
 #include <algorithm>
+#include <limits>
 
 #include <mpi.h>
 
@@ -74,6 +75,20 @@ point operator/ ( const point &, real );
 void  mpi_point_send ( unsigned int, const point& ); // Send point
 point mpi_point_recv ( unsigned int, unsigned int ); // Receive point
 
+struct kMeansStop {
+   // Maximum iterations
+   // Negative value means ignore
+   int maxIter = 10;
+
+   // Maximum centroid displacement
+   // Negative value means ignore
+   real minCentroidDisplacement = std::numeric_limits<double>::epsilon() * 20;
+
+   // Minimum number of labels that change at each iteration
+   // Negative value means ignore
+   int minLabelChanges = 1;
+};
+
 // K-means solver base class
 class kMeansBase {
 protected:
@@ -96,8 +111,8 @@ protected:
    // Iterations counter
    unsigned int iter = 0;
 
-   // Maximum iterations allowed
-   unsigned int maxIter = 1000;
+   // Stopping criterion
+   kMeansStop stoppingCriterion;
 public:
    // Constructor
    kMeansBase ( unsigned int nn, const std::vector<point> & pts ) :
@@ -108,6 +123,14 @@ public:
    // Getter and setter for the number of clusters
    void setK ( unsigned int );
    unsigned int getK ( void ) const { return k; }
+
+   // Getter and setter for the stopping criterion
+   void setStop ( int maxIter, real minDispl, int minLabCh ) {
+      stoppingCriterion.maxIter = maxIter;
+      stoppingCriterion.minCentroidDisplacement = minDispl;
+      stoppingCriterion.minLabelChanges = minLabCh;
+   }
+   kMeansStop getStop ( void ) const { return stoppingCriterion; }
 
    // Get the dimension of the points
    unsigned int getN ( void ) const { return n; }
@@ -121,6 +144,15 @@ public:
 
    // Get number of iterations performed
    unsigned int getIter ( void ) const { return iter; }
+
+   // Function to recompute the centroids
+   // Computation is executed in parallel
+   void computeCentroids ( void );
+
+   // Assigns random labels to the points of the dataset
+   // Must be called after k has been set
+   // Process 0 generates the values and then sends them to the other processes
+   void randomize ( void );
 };
 
 // Read a dataset from an input stream and stores it into a kmeans object

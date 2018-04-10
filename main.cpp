@@ -14,10 +14,12 @@ int main ( int argc, char * argv[] ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 
-   std::ifstream inputFile ( "./benchmarks/s1.txt" );
+   std::ifstream inputFile ( "./benchmarks/g2-2-30.txt" );
    kMeans solver ( inputFile );
+   solver.setStop ( 100, -1, 1 );
+   //solver.setBatchSize ( 100 );
 
-   solver.setK (15);
+   solver.setK (2);
    solver.solve ();
 
    if ( rank == 0 ) {
