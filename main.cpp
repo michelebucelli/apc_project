@@ -7,6 +7,8 @@
 #include <fstream>
 #include <cstdlib>
 
+#include <GetPot>
+
 using std::cout;
 using std::clog;
 using std::endl;
@@ -16,22 +18,13 @@ int main ( int argc, char * argv[] ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 
+   GetPot cmdLine ( argc, argv );
    timer tm;
 
-   // Read command line parameters
-   std::string test, method;
-   int k = 0;
-
-   if ( argc < 3 ) {
-      clog << "Too few arguments. Usage: main.out <test file> <cluster count> <method>" << endl;
-      return 1;
-   }
-
-   else {
-      test = argv[1];
-      k = std::atoi(argv[2]);
-      method = argv[3];
-   }
+   std::string test = cmdLine.follow("s1", 2, "-t", "--test" );
+   int k = cmdLine.follow(15, 1, "-k" );
+   std::string method = cmdLine.follow("kmeans", 2, "-m", "--method" );
+   bool purityTest = cmdLine.search("-p") || cmdLine.search("--purity" );
 
    std::ifstream datasetIn ( "./benchmarks/" + test + ".txt" );
    std::ifstream trueLabelsIn ( "./benchmarks/" + test + "-truelabels.txt" );
@@ -39,13 +32,15 @@ int main ( int argc, char * argv[] ) {
    kMeansBase *solver = nullptr;
 
    if ( method == "kmeans" ) {
-      solver = new kMeans ( datasetIn, trueLabelsIn );
+      solver = purityTest ? new kMeans ( datasetIn, trueLabelsIn ) : new kMeans ( datasetIn );
+      solver->setStop ( 1000, -1, 1 );
    }
 
    else if ( method == "kmeansSGD" ) {
-      kMeansSGD * slv = new kMeansSGD ( datasetIn, trueLabelsIn );
-      slv->setBatchSize ( 100 );
+      kMeansSGD * slv = purityTest ? new kMeansSGD ( datasetIn, trueLabelsIn ) : new kMeansSGD ( datasetIn );
+      slv->setBatchSize ( slv->size() / 150 );
       solver = slv;
+      solver->setStop ( 1000, -1, -1 );
    }
 
    else {
@@ -53,14 +48,17 @@ int main ( int argc, char * argv[] ) {
       return 1;
    }
 
-   solver->setStop ( 1000, -1, 1 );
    solver->setK ( k );
 
    if ( rank == 0 ) {
+      clog << "-----------------------------------------" << endl;
       clog << "Test name: " << test << endl;
       clog << "Dataset source: ./benchmarks/" << test << ".txt" << endl;
-      clog << "True labels source: ./benchmarks/" << test << "-truelabels.txt" << endl;
+      clog << "Dataset size: " << solver->size() << endl;
+      clog << "Clusters: " << k << endl;
+      if ( purityTest ) clog << "True labels source: ./benchmarks/" << test << "-truelabels.txt" << endl;
       clog << "Method: " << method << endl;
+      clog << "-----------------------------------------" << endl;
    }
 
    tm.start();
@@ -70,12 +68,12 @@ int main ( int argc, char * argv[] ) {
    if ( rank == 0 )
       clog << "Elapsed time: " << tm.getTime() << " microseconds" << endl;
 
-   real purity = solver->purity();
+   real purity = purityTest ? solver->purity() : 0;
 
    if ( rank == 0 ) {
-      clog << "Dataset size: " << solver->size() << endl;
       clog << "Converged in " << solver->getIter() << " iterations" << endl;
-      clog << "Clustering purity: " << purity << endl;
+      if ( purityTest ) clog << "Clustering purity: " << purity << endl;
+      clog << "-----------------------------------------" << endl;
       cout << (*solver);
    }
 

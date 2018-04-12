@@ -5,8 +5,8 @@ OBJECTS = main.o kmeans_base.o kmeans.o kmeans_sgd.o
 OUTPUT = output.txt
 EXE = main.out
 
-TEST = s1 15
-METHOD = kmeans
+NP = 4
+ARGS = -t s1 -k 15 --purity -m kmeans
 
 all : $(EXE)
 
@@ -14,7 +14,7 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	mpiexec -np 4 ./$(EXE) $(TEST) $(METHOD) >$(OUTPUT)
+	mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
 
 plot : $(OUTPUT)
 	gnuplot -dc plotScript.plt -p
