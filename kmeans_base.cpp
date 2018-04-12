@@ -221,9 +221,8 @@ real kMeansBase::purity ( void ) const {
    // Compute purity
    real result = 0;
 
-   for ( unsigned int i = rank; i < dataset.size(); i += size ) {
+   for ( unsigned int i = rank; i < dataset.size(); i += size )
       if ( dataset[i].getTrueLabel() == trueLabels[dataset[i].getLabel()] ) result += 1;
-   }
 
    MPI_Allreduce ( MPI_IN_PLACE, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 

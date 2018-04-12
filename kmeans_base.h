@@ -135,6 +135,9 @@ public:
       getTrueLabels(trueLabelsIn);
    }
 
+   // Destructor
+   virtual ~kMeansBase ( void ) = default;
+
    // Getter and setter for the number of clusters
    void setK ( unsigned int );
    unsigned int getK ( void ) const { return k; }
