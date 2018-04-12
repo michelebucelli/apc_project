@@ -14,7 +14,7 @@ void kMeansSGD::solve ( void ) {
 
    // Size of each batch is in the member batchSize
 
-   std::default_random_engine eng;
+   std::default_random_engine eng ( rank * 1234 );
    std::uniform_int_distribution<unsigned int> distro ( 0, dataset.size() - 1 );
 
    iter = 0;
@@ -44,11 +44,17 @@ void kMeansSGD::solve ( void ) {
 
       // Pick random entries in the dataset
       std::vector<int> indices ( batchSize, -1 );
+      std::vector<int> oldLabels ( batchSize, -5 );
+
       if ( rank == 0 ) {
          indices[0] = distro(eng);
+         oldLabels[0] = dataset[indices[0]].getLabel();
+
          for ( int i = 1; i < batchSize; ++i ) {
             do indices[i] = distro(eng);
             while ( find(indices.begin(), indices.begin() + i, indices[i]) != indices.begin() + i );
+
+            oldLabels[i] = dataset[indices[i]].getLabel();
          }
       }
 
@@ -70,18 +76,8 @@ void kMeansSGD::solve ( void ) {
          }
 
          if ( nearestLabel != dataset[idx].getLabel() ) {
-            int oldLab = dataset[idx].getLabel();
-
-            // Update counts and centroids
-            counts[nearestLabel] += 1;
-            counts[oldLab] -= 1;
-
-            centroids[nearestLabel] += (dataset[idx] - centroids[nearestLabel]) / counts[nearestLabel];
-            centroids[oldLab] += (centroids[oldLab] - dataset[idx]) / counts[oldLab];
-
             // Set the label of the picked point
             dataset[idx].setLabel(nearestLabel);
-
             changes++;
          }
       }
@@ -105,10 +101,13 @@ void kMeansSGD::solve ( void ) {
       if ( rank == 0 ) {
          for ( int i = 0; i < batchSize; ++i ) {
             int label = dataset[indices[i]].getLabel();
-            counts[label] += 1;
+            int oldLab = oldLabels[i];
 
-            point diff = ( dataset[indices[i]] - centroids[label] ) / counts[label];
-            centroids[label] += diff;
+            counts[oldLab] -= 1;
+            counts[label]  += 1;
+
+            centroids[label] += (dataset[indices[i]] - centroids[label]) / counts[label];
+            centroids[oldLab] += (centroids[oldLab] - dataset[indices[i]]) / counts[oldLab];
          }
 
          // Send to everybody new centroids

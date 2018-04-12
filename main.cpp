@@ -7,7 +7,7 @@
 #include <fstream>
 #include <cstdlib>
 
-#include <GetPot>
+#include "GetPot"
 
 using std::cout;
 using std::clog;
@@ -40,7 +40,7 @@ int main ( int argc, char * argv[] ) {
       kMeansSGD * slv = purityTest ? new kMeansSGD ( datasetIn, trueLabelsIn ) : new kMeansSGD ( datasetIn );
       slv->setBatchSize ( slv->size() / 150 );
       solver = slv;
-      solver->setStop ( 1000, -1, -1 );
+      solver->setStop ( 1000, 0.005, 1 );
    }
 
    else {
