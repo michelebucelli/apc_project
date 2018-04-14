@@ -9,7 +9,7 @@ N = 5e4;
 k = 5;
 
 % Dimension of the space
-dim = 10;
+dim = 50;
 
 % Cluster centers [x y]
 mu = unifrnd ( -10, 10, k, dim );

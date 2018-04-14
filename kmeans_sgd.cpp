@@ -14,7 +14,7 @@ void kMeansSGD::solve ( void ) {
 
    // Size of each batch is in the member batchSize
 
-   std::default_random_engine eng ( rank * 1234 );
+   std::default_random_engine eng ( 1 );
    std::uniform_int_distribution<unsigned int> distro ( 0, dataset.size() - 1 );
 
    iter = 0;
@@ -45,19 +45,14 @@ void kMeansSGD::solve ( void ) {
       std::vector<int> indices ( batchSize, -1 );
       std::vector<int> oldLabels ( batchSize, -5 );
 
-      if ( rank == 0 ) {
-         indices[0] = distro(eng);
-         oldLabels[0] = dataset[indices[0]].getLabel();
+      indices[0] = distro(eng);
+      oldLabels[0] = dataset[indices[0]].getLabel();
+      for ( int i = 1; i < batchSize; ++i ) {
+         do indices[i] = distro(eng);
+         while ( find(indices.begin(), indices.begin() + i, indices[i]) != indices.begin() + i );
 
-         for ( int i = 1; i < batchSize; ++i ) {
-            do indices[i] = distro(eng);
-            while ( find(indices.begin(), indices.begin() + i, indices[i]) != indices.begin() + i );
-
-            oldLabels[i] = dataset[indices[i]].getLabel();
-         }
+         oldLabels[i] = dataset[indices[i]].getLabel();
       }
-
-      MPI_Bcast ( indices.data(), batchSize, MPI_INT, 0, MPI_COMM_WORLD );
 
       for ( int i = rank; i < batchSize; i += size ) {
          unsigned int idx = indices[i];
@@ -74,38 +69,36 @@ void kMeansSGD::solve ( void ) {
             }
          }
 
+         // Set the label of the picked point
          if ( nearestLabel != dataset[idx].getLabel() ) {
-            // Set the label of the picked point
             dataset[idx].setLabel(nearestLabel);
-            changes++;
          }
       }
 
       // Processes communicate the changes
       for ( int i = 0; i < batchSize; ++i ) {
+         int label = -1;
          if ( i % size == rank ) {
-            int lab = dataset[indices[i]].getLabel();
+            label = dataset[indices[i]].getLabel();
             for ( int j = 0; j < size; ++j )
-               if ( j != rank ) MPI_Send ( &lab, 1, MPI_INT, j, 0, MPI_COMM_WORLD );
+               if ( j != rank ) MPI_Send ( &label, 1, MPI_INT, j, 0, MPI_COMM_WORLD );
          }
 
          else {
-            int oldLabel = dataset[indices[i]].getLabel();
-            int label = 0;
-
             MPI_Recv ( &label, 1, MPI_INT, i % size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+            dataset[indices[i]].setLabel ( label );
+         }
 
-            if ( oldLabel != label ) {
-               dataset[indices[i]].setLabel ( label );
+         int oldLabel = oldLabels[i];
 
-               counts[oldLabel] -= 1;
-               counts[label]  += 1;
+         if ( oldLabel != label ) {
+            counts[oldLabel] -= 1;
+            counts[label]  += 1;
 
-               centroids[label] += (dataset[indices[i]] - centroids[label]) / counts[label];
-               centroids[oldLabel] += (centroids[oldLabel] - dataset[indices[i]]) / counts[oldLabel];
+            centroids[label] += (dataset[indices[i]] - centroids[label]) / counts[label];
+            centroids[oldLabel] += (centroids[oldLabel] - dataset[indices[i]]) / counts[oldLabel];
 
-               changes++;
-            }
+            changes++;
          }
       }
 

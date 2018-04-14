@@ -21,7 +21,7 @@ run : $(EXE)
 	mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
 
 plot : $(OUTPUT)
-	@ gnuplot -dc plotScript.plt -p 2>/dev/null
+	@ octave plotScript.m
 
 %.o : kmeans_base.h kmeans.h kmeans_sgd.h kmeansseq.h
 

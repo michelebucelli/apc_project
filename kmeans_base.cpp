@@ -176,10 +176,14 @@ std::istream& operator>> ( std::istream &in, kMeansBase &km ) {
 }
 
 std::ostream& operator<< ( std::ostream &out, const kMeansBase &km ) {
-   out << "dim = " << km.n << "\n" << "clusters = " << km.k << "\n";
+   out << "dim = " << km.n << ";\n" << "clusters = " << km.k << ";\n";
+   out << "dataset = [ ";
 
-   for ( const auto &i : km.dataset )
-      out << i << "\n";
+   unsigned int i = 0;
+   for ( ; i < km.size()-1; ++i )
+      out << km.dataset[i] << ";\n";
+
+   out << km.dataset[i] << "];";
 
    return out;
 }

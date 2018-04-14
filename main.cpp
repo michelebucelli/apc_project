@@ -44,7 +44,7 @@ int main ( int argc, char * argv[] ) {
 
    else if ( method == "kmeansSGD" ) {
       kMeansSGD * slv = purityTest ? new kMeansSGD ( datasetIn, trueLabelsIn ) : new kMeansSGD ( datasetIn );
-      slv->setBatchSize ( 5*size );
+      slv->setBatchSize ( 10*size );
       solver = slv;
       solver->setStop ( solver->size(), -1, 1 );
    }
