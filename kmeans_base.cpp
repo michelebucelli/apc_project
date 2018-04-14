@@ -86,77 +86,32 @@ void kMeansBase::computeCentroids ( void ) {
    // Partial results are then gathered by process 0, who computes the average
    // and assign the result to the centroids member
 
-   // Local sums
-   std::vector<point> localSums ( k, point(n) );
+   // Computes local sums, then reduces
+
+   centroids = std::vector<point> ( k, point(n) );
 
    for ( unsigned int i = rank; i < dataset.size(); i += size ) {
       unsigned int l = dataset[i].getLabel();
-      localSums[l] += dataset[i];
+      centroids[l] += dataset[i];
    }
 
    for ( unsigned int kk = 0; kk < k; ++kk ) {
-      mpi_point_reduce ( &localSums[kk] );
-      centroids[kk] = localSums[kk] / counts[kk];
-   }
-
-   // We use as centroid the point in the dataset which is nearest to the average
-   // (aka "medoid")
-
-   for ( unsigned int kk = rank; kk < k; kk += size ) {
-      unsigned int nearestIdx = 0;
-      real nearestDist = dist2 ( dataset[0], centroids[kk] );
-
-      for ( unsigned int i = 1; i < dataset.size(); ++i ) {
-         real d = dist2 ( dataset[i], centroids[kk] );
-         if ( d < nearestDist ) {
-            nearestIdx = i;
-            nearestDist = d;
-         }
-      }
-
-      centroids[kk] = dataset[nearestIdx];
-   }
-
-   // Processes communicate their computed centroids
-   for ( int kk = 0; kk < int(k); ++kk ) {
-      if ( kk % size == rank ) {
-         for ( int j = 0; j < size; ++j )
-            if ( j != rank ) mpi_point_send ( j, centroids[kk] );
-      }
-
-      else {
-         centroids[kk] = mpi_point_recv ( kk % size, n );
-      }
+      mpi_point_reduce ( &centroids[kk] );
+      centroids[kk] = centroids[kk] / counts[kk];
    }
 }
 
 void kMeansBase::randomize ( void ) {
-   int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
-   int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
+   std::default_random_engine eng(1);
+   std::uniform_int_distribution<unsigned int> dist ( 0, k - 1 );
 
-   if ( rank == 0 ) {
-      std::default_random_engine eng;
-      std::uniform_int_distribution<unsigned int> dist ( 0, k - 1 );
+   counts = std::vector<int>(k,0);
 
-      counts = std::vector<int>(k,0);
-
-      for ( auto & pt : dataset ) {
-         unsigned int lab = dist(eng);
-         pt.setLabel ( lab );
-         counts[lab]++;
-
-         for ( int i = 1; i < size; ++i )
-            MPI_Send ( &lab, 1, MPI_UNSIGNED, i, 0, MPI_COMM_WORLD );
-      }
-   }
-
-   else for ( auto & pt : dataset ) {
-      int lab = 0;
-      MPI_Recv ( &lab, 1, MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+   for ( auto & pt : dataset ) {
+      unsigned int lab = dist(eng);
       pt.setLabel ( lab );
+      counts[lab]++;
    }
-
-   MPI_Bcast ( counts.data(), k, MPI_INT, 0, MPI_COMM_WORLD );
 }
 
 void kMeansBase::getTrueLabels ( std::istream& in, int offset ) {
@@ -167,9 +122,6 @@ void kMeansBase::getTrueLabels ( std::istream& in, int offset ) {
 }
 
 real kMeansBase::purity ( void ) const {
-   int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
-   int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
-
    // True labels of the clusters
    std::vector<int> trueLabels ( k, -1 );
 
@@ -180,13 +132,11 @@ real kMeansBase::purity ( void ) const {
    std::vector<std::vector<int>> counts ( k, std::vector<int>(k,0) );
 
    // Iterate through the whole dataset and compute the counts
-   for ( unsigned int i = rank; i < dataset.size(); i += size )
+   for ( unsigned int i = 0; i < dataset.size(); ++i )
       counts[dataset[i].getLabel()][dataset[i].getTrueLabel()] += 1;
 
-   // Communicate the results and compute the true labels
+   // Compute the true labels
    for ( unsigned int kk = 0; kk < k; ++kk ) {
-      MPI_Allreduce ( MPI_IN_PLACE, counts[kk].data(), k, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
-
       int maxIdx = 0, maxCount = counts[kk][0];
       for ( unsigned int j = 1; j < k; ++j ) {
          if ( counts[kk][j] > maxCount ) {
@@ -201,13 +151,10 @@ real kMeansBase::purity ( void ) const {
    // Compute purity
    real result = 0;
 
-   for ( unsigned int i = rank; i < dataset.size(); i += size )
+   for ( unsigned int i = 0; i < dataset.size(); ++i )
       if ( dataset[i].getTrueLabel() == trueLabels[dataset[i].getLabel()] ) result += 1;
 
-   MPI_Allreduce ( MPI_IN_PLACE, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-
    return result / dataset.size();
-   return 0;
 }
 
 std::istream& operator>> ( std::istream &in, kMeansBase &km ) {

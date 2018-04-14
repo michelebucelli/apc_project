@@ -15,10 +15,6 @@ public:
    // Function to recompute the centroids
    void computeCentroids ( void ) override;
 
-   // Assigns random labels to the points of the dataset
-   // Must be called after k has been set
-   void randomize ( void ) override;
-
    // Solve method
    void solve ( void ) override;
 };

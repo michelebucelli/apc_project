@@ -81,6 +81,7 @@ point operator/ ( const point &, real );
 // receiving process when calling mpi_point_recv
 void  mpi_point_send ( unsigned int, const point& ); // Send point
 point mpi_point_recv ( unsigned int, unsigned int ); // Receive point
+void mpi_point_reduce ( point* ); // Sum points across processes
 
 struct kMeansStop {
    // Maximum iterations
@@ -173,7 +174,7 @@ public:
    // Assigns random labels to the points of the dataset
    // Must be called after k has been set
    // Process 0 generates the values and then sends them to the other processes
-   virtual void randomize ( void );
+   void randomize ( void );
 
    // Reads the true labels from an input stream
    // The labels are assumed to be in the same order as the points in the dataset

@@ -6,8 +6,6 @@ void kMeans::solve ( void ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 
-   randomize();
-
    iter = 0;
 
    // This variable counts how many points have changed label during each iteration
@@ -15,6 +13,7 @@ void kMeans::solve ( void ) {
    real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
+   randomize();
    computeCentroids();
 
    while ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
@@ -26,8 +25,6 @@ void kMeans::solve ( void ) {
 
       // Assigns each point to the group of the closest centroid
       for ( unsigned int i = rank; i < dataset.size(); i += size ) {
-         if ( counts[dataset[i].getLabel()] < 1000 ) continue;
-
          real nearestDist = dist2 ( dataset[i], centroids[0] );
          int nearestLabel = 0;
 

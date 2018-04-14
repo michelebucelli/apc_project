@@ -38,8 +38,7 @@ int main ( int argc, char * argv[] ) {
    }
 
    else if ( method == "sequential" ) {
-      solver = new kMeansSeq ( datasetIn );
-      purityTest = false;
+      solver = purityTest ? new kMeansSeq ( datasetIn, trueLabelsIn ) : new kMeansSeq ( datasetIn );
       solver->setStop ( 1000, -1, 1 );
    }
 
@@ -74,16 +73,13 @@ int main ( int argc, char * argv[] ) {
       tm.stop();
    }
 
-   if ( rank == 0 )
-      clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
-
-   real purity = purityTest ? solver->purity() : 0;
-
    if ( rank == 0 ) {
+      clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
       clog << "Converged in " << solver->getIter() << " iterations" << endl;
-      if ( purityTest ) clog << "Clustering purity: " << purity << endl;
+      if ( purityTest ) clog << "Clustering purity: " << solver->purity() << endl;
       clog << "-----------------------------------------" << endl;
 
+      clog << "Cluster counts:" << endl;
       for ( int kk = 0; kk < k; ++kk ) clog << solver->count(kk) << " ";
       clog << endl;
 

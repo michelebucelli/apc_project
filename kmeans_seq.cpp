@@ -10,34 +10,8 @@ void kMeansSeq::computeCentroids ( void ) {
       centroids[lab] += i;
    }
 
-   for ( unsigned int kk = 0; kk < k; ++kk ) {
-      if ( counts[kk] > 0 ) centroids[kk] = centroids[kk] / counts[kk];
-
-      unsigned int nearestIdx = 0;
-      real nearestDist = dist2 ( dataset[0], centroids[kk] );
-
-      for ( unsigned int i = 1; i < dataset.size(); ++i ) {
-         real d = dist2 ( dataset[i], centroids[kk] );
-         if ( d < nearestDist ) {
-            nearestIdx = i;
-            nearestDist = d;
-         }
-      }
-
-      centroids[kk] = dataset[nearestIdx];
-   }
-}
-
-void kMeansSeq::randomize ( void ) {
-   std::default_random_engine eng;
-   std::uniform_int_distribution<unsigned int> dist ( 0, k - 1 );
-
-   counts = std::vector<int> ( k, 0 );
-   for ( auto & i : dataset ) {
-      unsigned int lab = dist(eng);
-      i.setLabel ( lab );
-      counts[lab]++;
-   }
+   for ( unsigned int kk = 0; kk < k; ++kk )
+      centroids[kk] = centroids[kk] / counts[kk];
 }
 
 void kMeansSeq::solve ( void ) {
