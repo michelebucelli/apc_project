@@ -114,7 +114,7 @@ void kMeansBase::randomize ( void ) {
    }
 }
 
-void kMeansBase::getTrueLabels ( std::istream& in, int offset ) {
+void kMeansBase::readTrueLabels ( std::istream& in, int offset ) {
    for ( auto & pt : dataset ) {
       int tmp; in >> tmp;
       pt.setTrueLabel ( tmp + offset );

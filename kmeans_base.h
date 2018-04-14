@@ -136,7 +136,7 @@ public:
    // true labels from the second input stream
    kMeansBase ( std::istream& datasetIn, std::istream& trueLabelsIn ) {
       datasetIn >> (*this);
-      getTrueLabels(trueLabelsIn);
+      readTrueLabels(trueLabelsIn);
    }
 
    // Destructor
@@ -169,6 +169,9 @@ public:
 
    // Function to recompute the centroids
    // Computation is executed in parallel
+   // Made virtual here because classes might want to redefine the way centroids
+   // are computed (for instance, child class kMeansSeq redefines this function
+   // because it does not use parallel computation)
    virtual void computeCentroids ( void );
 
    // Assigns random labels to the points of the dataset
@@ -178,7 +181,7 @@ public:
 
    // Reads the true labels from an input stream
    // The labels are assumed to be in the same order as the points in the dataset
-   void getTrueLabels ( std::istream&, int = -1 );
+   void readTrueLabels ( std::istream&, int = -1 );
 
    // Compute and return the purity of the clustering
    // Each cluster is assigned to the true label that is most frequent in it, then
