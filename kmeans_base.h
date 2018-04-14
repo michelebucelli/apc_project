@@ -191,7 +191,7 @@ public:
    real purity ( void ) const;
 
    // Count elements in cluster
-   int count ( int l ) const { return counts[l]; }
+   int getClusterCount ( int l ) const { return counts[l]; }
 };
 
 // Read a dataset from an input stream and stores it into a kmeans object

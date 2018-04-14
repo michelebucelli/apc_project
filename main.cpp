@@ -80,7 +80,7 @@ int main ( int argc, char * argv[] ) {
       clog << "-----------------------------------------" << endl;
 
       clog << "Cluster counts:" << endl;
-      for ( int kk = 0; kk < k; ++kk ) clog << solver->count(kk) << " ";
+      for ( int kk = 0; kk < k; ++kk ) clog << solver->getClusterCount(kk) << " ";
       clog << endl;
 
       clog << "-----------------------------------------" << endl;
