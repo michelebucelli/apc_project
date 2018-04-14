@@ -1,5 +1,6 @@
-#include "kmeans_sgd.h"
+ #include "kmeans_seq.h"
 #include "kmeans.h"
+#include "kmeans_sgd.h"
 
 #include "timer.h"
 
@@ -36,11 +37,15 @@ int main ( int argc, char * argv[] ) {
       solver->setStop ( 1000, -1, 1 );
    }
 
+   else if ( method == "sequential" ) {
+      solver = purityTest ? new kMeansSeq ( datasetIn, trueLabelsIn ) : new kMeansSeq ( datasetIn );
+   }
+
    else if ( method == "kmeansSGD" ) {
       kMeansSGD * slv = purityTest ? new kMeansSGD ( datasetIn, trueLabelsIn ) : new kMeansSGD ( datasetIn );
-      slv->setBatchSize ( slv->size() / 150 );
+      slv->setBatchSize ( 5*size );
       solver = slv;
-      solver->setStop ( 1000, 0.005, 1 );
+      solver->setStop ( solver->size(), -1, 1 );
    }
 
    else {
@@ -61,12 +66,14 @@ int main ( int argc, char * argv[] ) {
       clog << "-----------------------------------------" << endl;
    }
 
-   tm.start();
-   solver->solve ();
-   tm.stop();
+   if ( method != "sequential" || rank == 0 ) {
+      tm.start();
+      solver->solve ();
+      tm.stop();
+   }
 
    if ( rank == 0 )
-      clog << "Elapsed time: " << tm.getTime() << " microseconds" << endl;
+      clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
 
    real purity = purityTest ? solver->purity() : 0;
 

@@ -35,9 +35,13 @@ void kMeansSGD::solve ( void ) {
    real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
-   while ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
+   int stopIters = 0;
+
+   while ( stopIters < 10 ) {
+      if ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
-        && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
+        && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) stopIters = 0;
+      else stopIters++;
 
       oldCentroids = centroids;
       changes = 0;
@@ -91,53 +95,34 @@ void kMeansSGD::solve ( void ) {
          }
 
          else {
-            int lab = 0;
-            MPI_Recv ( &lab, 1, MPI_INT, i % size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-            dataset[indices[i]].setLabel ( lab );
+            int oldLabel = dataset[indices[i]].getLabel();
+            int label = 0;
+
+            MPI_Recv ( &label, 1, MPI_INT, i % size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+
+            if ( oldLabel != label ) {
+               dataset[indices[i]].setLabel ( label );
+
+               counts[oldLabel] -= 1;
+               counts[label]  += 1;
+
+               centroids[label] += (dataset[indices[i]] - centroids[label]) / counts[label];
+               centroids[oldLabel] += (centroids[oldLabel] - dataset[indices[i]]) / counts[oldLabel];
+
+               changes++;
+            }
          }
       }
-
-      // Rank 0 updates centroids, then sends them to the others
-      if ( rank == 0 ) {
-         for ( int i = 0; i < batchSize; ++i ) {
-            int label = dataset[indices[i]].getLabel();
-            int oldLab = oldLabels[i];
-
-            counts[oldLab] -= 1;
-            counts[label]  += 1;
-
-            centroids[label] += (dataset[indices[i]] - centroids[label]) / counts[label];
-            centroids[oldLab] += (centroids[oldLab] - dataset[indices[i]]) / counts[oldLab];
-         }
-
-         // Send to everybody new centroids
-         for ( unsigned int kk = 0; kk < k; ++kk )
-            for ( int j = 1; j < size; ++j )
-               mpi_point_send ( j, centroids[kk] );
-      }
-
-      // Other ranks: receive centroids from rank 0
-      else {
-         for ( unsigned int kk = 0; kk < k; ++kk )
-            centroids[kk] = mpi_point_recv ( 0, n );
-      }
-
-      // Communicate counts
-      MPI_Bcast ( counts.data(), k, MPI_UNSIGNED, 0, MPI_COMM_WORLD );
-
-      // Collect total label changes
-      MPI_Allreduce ( MPI_IN_PLACE, &changes, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
 
       // Compute the max displacement of the centroids
-      centroidDispl = 0;
-      for ( unsigned kk = rank; kk < k; kk += size ) {
-         real displ = dist2 ( oldCentroids[kk], centroids[kk] );
-         if ( displ > centroidDispl ) centroidDispl = displ;
+      if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
+         centroidDispl = 0;
+         for ( unsigned kk = 0; kk < k; ++kk ) {
+            real displ = dist2 ( oldCentroids[kk], centroids[kk] );
+            if ( displ > centroidDispl ) centroidDispl = displ;
+         }
+         centroidDispl = sqrt(centroidDispl);
       }
-      centroidDispl = sqrt(centroidDispl);
-
-      // Communicates centroid displacement
-      MPI_Allreduce ( MPI_IN_PLACE, &centroidDispl, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
 
       ++iter;
    }

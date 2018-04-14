@@ -19,7 +19,7 @@ public:
 
    double getTime ( void ) const {
       auto tspan = std::chrono::duration_cast<std::chrono::nanoseconds> ( stopTime - startTime );
-      return tspan.count() / 1000.0;
+      return tspan.count() / 1000000.0;
    }
 };
 

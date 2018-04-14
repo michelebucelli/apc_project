@@ -53,6 +53,7 @@ void kMeans::solve ( void ) {
          else {
             int lab = 0;
             MPI_Recv ( &lab, 1, MPI_INT, i % size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+            if ( dataset[i].getLabel() != lab ) changes++;
             dataset[i].setLabel ( lab );
          }
       }
@@ -61,18 +62,14 @@ void kMeans::solve ( void ) {
       computeCentroids();
 
       // Compute the max displacement of the centroids
-      centroidDispl = 0;
-      for ( unsigned kk = rank; kk < k; kk += size ) {
-         real displ = dist2 ( oldCentroids[kk], centroids[kk] );
-         if ( displ > centroidDispl ) centroidDispl = displ;
+      if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
+         centroidDispl = 0;
+         for ( unsigned kk = 0; kk < k; kk += 1 ) {
+            real displ = dist2 ( oldCentroids[kk], centroids[kk] );
+            if ( displ > centroidDispl ) centroidDispl = displ;
+         }
+         centroidDispl = sqrt(centroidDispl);
       }
-      centroidDispl = sqrt(centroidDispl);
-
-      // Communicates centroid displacement
-      MPI_Allreduce ( MPI_IN_PLACE, &centroidDispl, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-
-      // Collects all the changes and centroid displacements flags from all processes
-      MPI_Allreduce ( MPI_IN_PLACE, &changes, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD );
 
       ++iter;
    }

@@ -165,12 +165,12 @@ public:
 
    // Function to recompute the centroids
    // Computation is executed in parallel
-   void computeCentroids ( void );
+   virtual void computeCentroids ( void );
 
    // Assigns random labels to the points of the dataset
    // Must be called after k has been set
    // Process 0 generates the values and then sends them to the other processes
-   void randomize ( void );
+   virtual void randomize ( void );
 
    // Reads the true labels from an input stream
    // The labels are assumed to be in the same order as the points in the dataset
