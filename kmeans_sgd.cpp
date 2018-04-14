@@ -19,25 +19,20 @@ void kMeansSGD::solve ( void ) {
 
    iter = 0;
 
-   // Count of elements in each class
-   std::vector<unsigned int> counts ( k, 0 );
-
    // Randomize initial assignments
    randomize();
    computeCentroids();
-
-   // Compute initial counts
-   for ( unsigned int i = rank; i < dataset.size(); i += size )
-      counts [ dataset[i].getLabel() ]++;
-   MPI_Allreduce ( MPI_IN_PLACE, counts.data(), k, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD );
 
    int changes = stoppingCriterion.minLabelChanges + 1;
    real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
+   // Counts for how many subsequent iterations the stopping criteria are met; the
+   // algorithm stops when it reaches a fixed number (see below)
+   // This helps checking that actual convergence takes place
    int stopIters = 0;
 
-   while ( stopIters < 10 ) {
+   while ( stopIters < 15 ) {
       if ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) stopIters = 0;

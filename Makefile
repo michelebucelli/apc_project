@@ -9,7 +9,7 @@ NP = 2
 
 METHOD = kmeans
 TEST = g500000
-K = 5
+K = 6
 ARGS = -t $(TEST) -k $(K) -m $(METHOD) --purity
 
 all : $(EXE)

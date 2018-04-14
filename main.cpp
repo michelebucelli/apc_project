@@ -38,7 +38,9 @@ int main ( int argc, char * argv[] ) {
    }
 
    else if ( method == "sequential" ) {
-      solver = purityTest ? new kMeansSeq ( datasetIn, trueLabelsIn ) : new kMeansSeq ( datasetIn );
+      solver = new kMeansSeq ( datasetIn );
+      purityTest = false;
+      solver->setStop ( 1000, -1, 1 );
    }
 
    else if ( method == "kmeansSGD" ) {
@@ -49,7 +51,7 @@ int main ( int argc, char * argv[] ) {
    }
 
    else {
-      clog << "Unknown method " << method << "; available methods: kmeans kmeansSGD" << endl;
+      clog << "Unknown method " << method << "; available methods: sequential, kmeans, kmeansSGD" << endl;
       return 1;
    }
 
@@ -81,6 +83,12 @@ int main ( int argc, char * argv[] ) {
       clog << "Converged in " << solver->getIter() << " iterations" << endl;
       if ( purityTest ) clog << "Clustering purity: " << purity << endl;
       clog << "-----------------------------------------" << endl;
+
+      for ( int kk = 0; kk < k; ++kk ) clog << solver->count(kk) << " ";
+      clog << endl;
+
+      clog << "-----------------------------------------" << endl;
+
       cout << (*solver);
    }
 

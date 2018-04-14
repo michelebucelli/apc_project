@@ -56,7 +56,7 @@ public:
    void setLabel ( int l ) { label = l; }
 
    // True label get and set
-   const int getTrueLabel ( void ) const { return trueLabel; }
+   int getTrueLabel ( void ) const { return trueLabel; }
    void setTrueLabel ( int l ) { trueLabel = l; }
 };
 
@@ -111,6 +111,9 @@ protected:
    // Centroids
    // Centroid for cluster of label 0 is centroids[0], etc...
    std::vector<point> centroids;
+
+   // Counts of the points assigned to each cluster
+   std::vector<int> counts;
 
    friend std::istream& operator>> ( std::istream&, kMeansBase& );
    friend std::ostream& operator<< ( std::ostream&, const kMeansBase& );
@@ -182,6 +185,9 @@ public:
    // the dataset that were assigned to the corresponding "true" cluster
    // True labels need to be set for the function to work (use getTrueLabels for that...)
    real purity ( void ) const;
+
+   // Count elements in cluster
+   int count ( int l ) const { return counts[l]; }
 };
 
 // Read a dataset from an input stream and stores it into a kmeans object

@@ -66,9 +66,14 @@ point mpi_point_recv ( unsigned int src, unsigned int n ) {
    return point ( n, coords );
 }
 
+void mpi_point_reduce ( point * pt ) {
+   MPI_Allreduce ( MPI_IN_PLACE, pt->data(), pt->getN(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+}
+
 void kMeansBase::setK ( unsigned int kk ) {
    k = kk;
    centroids = std::vector<point> ( kk, point(n) );
+   counts = std::vector<int> ( kk, 0 );
 }
 
 void kMeansBase::computeCentroids ( void ) {
@@ -83,45 +88,15 @@ void kMeansBase::computeCentroids ( void ) {
 
    // Local sums
    std::vector<point> localSums ( k, point(n) );
-   std::vector<unsigned int> localCounts ( k, 0 );
 
    for ( unsigned int i = rank; i < dataset.size(); i += size ) {
       unsigned int l = dataset[i].getLabel();
       localSums[l] += dataset[i];
-      localCounts[l]++;
    }
 
-   std::vector<unsigned int> globalCounts ( k, 0 );
-
-   // Global counts are obtained reducing the local counts
-   MPI_Reduce ( localCounts.data(), globalCounts.data(), k, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD );
-
-   // Rank 0 : collects the partial sums from the others, then performs the average
-   // and send the result to all other processes
-   if ( rank == 0 ) {
-      std::vector<point> globalSums = localSums;
-
-      for ( int i = 1; i < size; ++i ) // For each other process
-         for ( unsigned int kk = 0; kk < k; ++kk ) // and for each cluster
-            globalSums[kk] += mpi_point_recv ( i, n ); // Receive the local sum
-
-      // Computes the centroids
-      for ( unsigned int kk = 0; kk < k; ++kk )
-         centroids[kk] = globalSums[kk] / globalCounts[kk];
-
-      // Sends the centroids to all other processes
-      for ( int i = 1; i < size; ++i )
-         for ( unsigned int kk = 0; kk < k; ++kk )
-            mpi_point_send ( i, centroids[kk] );
-   }
-
-   // Other ranks : send their partial sums to rank 0, then receive the centroids
-   else {
-      for ( const point& pt : localSums )
-         mpi_point_send ( 0, pt );
-
-      for ( unsigned int kk = 0; kk < k; ++kk )
-         centroids[kk] = mpi_point_recv ( 0, n );
+   for ( unsigned int kk = 0; kk < k; ++kk ) {
+      mpi_point_reduce ( &localSums[kk] );
+      centroids[kk] = localSums[kk] / counts[kk];
    }
 
    // We use as centroid the point in the dataset which is nearest to the average
@@ -163,9 +138,12 @@ void kMeansBase::randomize ( void ) {
       std::default_random_engine eng;
       std::uniform_int_distribution<unsigned int> dist ( 0, k - 1 );
 
+      counts = std::vector<int>(k,0);
+
       for ( auto & pt : dataset ) {
          unsigned int lab = dist(eng);
          pt.setLabel ( lab );
+         counts[lab]++;
 
          for ( int i = 1; i < size; ++i )
             MPI_Send ( &lab, 1, MPI_UNSIGNED, i, 0, MPI_COMM_WORLD );
@@ -177,6 +155,8 @@ void kMeansBase::randomize ( void ) {
       MPI_Recv ( &lab, 1, MPI_UNSIGNED, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
       pt.setLabel ( lab );
    }
+
+   MPI_Bcast ( counts.data(), k, MPI_INT, 0, MPI_COMM_WORLD );
 }
 
 void kMeansBase::getTrueLabels ( std::istream& in, int offset ) {

@@ -26,6 +26,8 @@ void kMeans::solve ( void ) {
 
       // Assigns each point to the group of the closest centroid
       for ( unsigned int i = rank; i < dataset.size(); i += size ) {
+         if ( counts[dataset[i].getLabel()] < 1000 ) continue;
+
          real nearestDist = dist2 ( dataset[i], centroids[0] );
          int nearestLabel = 0;
 
@@ -38,7 +40,12 @@ void kMeans::solve ( void ) {
             }
          }
 
-         if ( dataset[i].getLabel() != nearestLabel ) changes++;
+         if ( dataset[i].getLabel() != nearestLabel ) {
+            changes++;
+            counts[dataset[i].getLabel()]--;
+            counts[nearestLabel]++;
+         }
+
          dataset[i].setLabel(nearestLabel);
       }
 
@@ -53,7 +60,13 @@ void kMeans::solve ( void ) {
          else {
             int lab = 0;
             MPI_Recv ( &lab, 1, MPI_INT, i % size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-            if ( dataset[i].getLabel() != lab ) changes++;
+
+            if ( dataset[i].getLabel() != lab ) {
+               changes++;
+               counts[dataset[i].getLabel()]--;
+               counts[lab]++;
+            }
+
             dataset[i].setLabel ( lab );
          }
       }
