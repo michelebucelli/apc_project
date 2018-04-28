@@ -34,7 +34,7 @@ void kMeansSGD::solve ( void ) {
    // This helps checking that actual convergence takes place
    int stopIters = 0;
 
-   multiTimer tm ( 4 );
+   multiTimer tm ( 5 );
 
    while ( stopIters < 10 ) {
       if ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
@@ -62,6 +62,7 @@ void kMeansSGD::solve ( void ) {
       for ( int i = rank; i < batchSize; i += size ) {
          unsigned int idx = indices[i];
 
+         tm.start(4);
          // Find the nearest centroid
          int nearestLabel = 0;
          real nearestDist = dist2 ( dataset[idx], centroids[0] );
@@ -73,6 +74,7 @@ void kMeansSGD::solve ( void ) {
                nearestLabel = kk;
             }
          }
+         tm.stop(4);
 
          // Set the label of the picked point
          if ( nearestLabel != dataset[idx].getLabel() ) {
@@ -85,14 +87,14 @@ void kMeansSGD::solve ( void ) {
 
 
       tm.start ( 1 );
-      short label = -1;
+      char label = -1;
       int oldLabel = -1;
-      
+
       // Processes communicate the changes
       for ( int i = 0; i < batchSize; ++i ) {
          tm.start ( 2 );
          label = dataset[indices[i]].getLabel();
-         MPI_Bcast ( &label, 1, MPI_SHORT, i % size, MPI_COMM_WORLD );
+         MPI_Bcast ( &label, 1, MPI_CHAR, i % size, MPI_COMM_WORLD );
          tm.stop ( 2 );
 
          tm.start ( 3 );

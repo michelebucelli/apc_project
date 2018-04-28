@@ -92,13 +92,12 @@ void kMeansBase::computeCentroids ( void ) {
 
    for ( unsigned int i = rank; i < dataset.size(); i += size ) {
       unsigned int l = dataset[i].getLabel();
-      centroids[l] += dataset[i];
+      for ( unsigned int nn = 0; nn < n; ++nn )
+         centroids[l][nn] += dataset[i][nn] / counts[l];
    }
 
-   for ( unsigned int kk = 0; kk < k; ++kk ) {
+   for ( unsigned int kk = 0; kk < k; ++kk )
       mpi_point_reduce ( &centroids[kk] );
-      centroids[kk] = centroids[kk] / counts[kk];
-   }
 }
 
 void kMeansBase::randomize ( void ) {
