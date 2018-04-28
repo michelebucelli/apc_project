@@ -111,8 +111,8 @@ int main ( int argc, char * argv[] ) {
 
       else if ( i == "kmeansSGD" ) {
          auto tmp = new kMeansSGD ( n, dataset );
-         tmp->setBatchSize ( 720 );
-         tmp->setStop ( -1, -1, 50 );
+         tmp->setBatchSize ( 1440 );
+         tmp->setStop ( -1, -1, 100 );
 
          solver = tmp;
       }

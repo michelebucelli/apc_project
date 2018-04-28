@@ -50,7 +50,7 @@ public:
    std::string cumulatesToString ( void ) const {
       std::stringstream st;
       for ( auto i : cumulates )
-         st << std::setw(10) << i << "  ";
+         st << std::setw(8) << i << " ";
       return st.str();
    }
 
