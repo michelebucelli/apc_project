@@ -1,6 +1,8 @@
 #include "kmeans_sgd.h"
+#include "timer.h"
 #include <iostream>
-using std::clog; using std::endl;
+#include <iomanip>
+using std::clog; using std::endl; using std::flush;
 
 void kMeansSGD::solve ( void ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
@@ -32,11 +34,16 @@ void kMeansSGD::solve ( void ) {
    // This helps checking that actual convergence takes place
    int stopIters = 0;
 
-   while ( stopIters < 15 ) {
+   multiTimer tm ( 4 );
+
+   while ( stopIters < 10 ) {
       if ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) stopIters = 0;
       else stopIters++;
+
+      tm.start ( 0 );
+      if ( rank == 0 ) clog << std::setw(8) << iter << " " << flush;
 
       oldCentroids = centroids;
       changes = 0;
@@ -48,9 +55,7 @@ void kMeansSGD::solve ( void ) {
       indices[0] = distro(eng);
       oldLabels[0] = dataset[indices[0]].getLabel();
       for ( int i = 1; i < batchSize; ++i ) {
-         do indices[i] = distro(eng);
-         while ( find(indices.begin(), indices.begin() + i, indices[i]) != indices.begin() + i );
-
+         indices[i] = distro(eng);
          oldLabels[i] = dataset[indices[i]].getLabel();
       }
 
@@ -75,32 +80,41 @@ void kMeansSGD::solve ( void ) {
          }
       }
 
+      tm.stop ( 0 );
+      if ( rank == 0 ) clog << std::setw(8) << tm.getTime(0) << " " << flush;
+
+
+      tm.start ( 1 );
+      short label = -1;
+      int oldLabel = -1;
+      
       // Processes communicate the changes
       for ( int i = 0; i < batchSize; ++i ) {
-         int label = -1;
-         if ( i % size == rank ) {
-            label = dataset[indices[i]].getLabel();
-            for ( int j = 0; j < size; ++j )
-               if ( j != rank ) MPI_Send ( &label, 1, MPI_INT, j, 0, MPI_COMM_WORLD );
-         }
+         tm.start ( 2 );
+         label = dataset[indices[i]].getLabel();
+         MPI_Bcast ( &label, 1, MPI_SHORT, i % size, MPI_COMM_WORLD );
+         tm.stop ( 2 );
 
-         else {
-            MPI_Recv ( &label, 1, MPI_INT, i % size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-            dataset[indices[i]].setLabel ( label );
-         }
+         tm.start ( 3 );
+         if ( rank != i % size ) dataset[indices[i]].setLabel ( label );
 
-         int oldLabel = oldLabels[i];
+         oldLabel = oldLabels[i];
 
          if ( oldLabel != label ) {
             counts[oldLabel] -= 1;
             counts[label]  += 1;
 
-            centroids[label] += (dataset[indices[i]] - centroids[label]) / counts[label];
-            centroids[oldLabel] += (centroids[oldLabel] - dataset[indices[i]]) / counts[oldLabel];
+            for ( unsigned int nn = 0; nn < n; ++nn ) {
+               centroids[label][nn] += ( dataset[indices[i]][nn] - centroids[label][nn] ) / counts[label];
+               centroids[oldLabel][nn] += ( centroids[oldLabel][nn] - dataset[indices[i]][nn] ) / counts[oldLabel];
+            }
 
             changes++;
          }
+         tm.stop(3);
       }
+      tm.stop( 1 );
+      if ( rank == 0 ) clog << std::setw(8) << tm.getTime(1) << " " << std::setw(8) << changes << endl;
 
       // Compute the max displacement of the centroids
       if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
@@ -113,5 +127,11 @@ void kMeansSGD::solve ( void ) {
       }
 
       ++iter;
+   }
+
+   if ( rank == 0 ) {
+      clog << "-----------------------------------------" << endl;
+      clog << std::setw(8) << iter << " " << tm.cumulatesToString() << endl;
+      clog << "-----------------------------------------" << endl;
    }
 }
