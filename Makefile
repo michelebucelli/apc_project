@@ -18,7 +18,7 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
+	mpiexec --mca btl ^openib -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
 
 plot : $(OUTPUT)
 	@ octave plotScript.m
