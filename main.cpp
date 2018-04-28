@@ -1,4 +1,4 @@
- #include "kmeans_seq.h"
+#include "kmeans_seq.h"
 #include "kmeans.h"
 #include "kmeans_sgd.h"
 
@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <string>
 
 #include "GetPot"
 
@@ -19,76 +20,88 @@ int main ( int argc, char * argv[] ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 
+   // Read parameters from command line
    GetPot cmdLine ( argc, argv );
-   timer tm;
+   std::string test = cmdLine.follow("g1M-20-5", 2, "-t", "--test" ); // Test name
+   int k = cmdLine.follow(5, 1, "-k" ); // Number of clusters
+   std::string method = cmdLine.follow("sequential", 2, "-m", "--method" ); // Method : sequential, kmeans, kmeansSGD, compare
+   bool purityTest = cmdLine.search("-p") || cmdLine.search("--purity" ); // Purity flag test
+   bool suppressOutput = cmdLine.search("--no-output"); // Disable output
+   bool suppressLog = cmdLine.search("--no-log"); // Disable log
 
-   std::string test = cmdLine.follow("s1", 2, "-t", "--test" );
-   int k = cmdLine.follow(15, 1, "-k" );
-   std::string method = cmdLine.follow("kmeans", 2, "-m", "--method" );
-   bool purityTest = cmdLine.search("-p") || cmdLine.search("--purity" );
-
+   // Read the dataset
    std::ifstream datasetIn ( "./benchmarks/" + test + ".txt" );
+   kMeansDataset dataset;
+   datasetIn >> dataset;
+   unsigned int n = dataset[0].getN();
+
+   // Read the true labels
    std::ifstream trueLabelsIn ( "./benchmarks/" + test + "-truelabels.txt" );
+   std::vector<int> trueLabels;
+   trueLabelsIn >> trueLabels;
 
-   kMeansBase *solver = nullptr;
-
-   if ( method == "kmeans" ) {
-      solver = purityTest ? new kMeans ( datasetIn, trueLabelsIn ) : new kMeans ( datasetIn );
-      solver->setStop ( 1000, -1, 1 );
-   }
-
-   else if ( method == "sequential" ) {
-      solver = purityTest ? new kMeansSeq ( datasetIn, trueLabelsIn ) : new kMeansSeq ( datasetIn );
-      solver->setStop ( 1000, -1, 1 );
-   }
-
-   else if ( method == "kmeansSGD" ) {
-      kMeansSGD * slv = purityTest ? new kMeansSGD ( datasetIn, trueLabelsIn ) : new kMeansSGD ( datasetIn );
-      slv->setBatchSize ( 20*size );
-      solver = slv;
-      solver->setStop ( solver->size(), -1, 8 );
-   }
-
-   else {
-      clog << "Unknown method " << method << "; available methods: sequential, kmeans, kmeansSGD" << endl;
-      return 1;
-   }
-
-   solver->setK ( k );
-
-   if ( rank == 0 ) {
+   // Dataset info on log
+   if ( rank == 0 && !suppressLog ) {
       clog << "-----------------------------------------" << endl;
       clog << "Test name: " << test << endl;
       clog << "Dataset source: ./benchmarks/" << test << ".txt" << endl;
-      clog << "Dataset size: " << solver->size() << endl;
+      clog << "Dataset size: " << dataset.size() << endl;
+      clog << "Dataset dimension: " << n << endl;
       clog << "Clusters: " << k << endl;
       if ( purityTest ) clog << "True labels source: ./benchmarks/" << test << "-truelabels.txt" << endl;
-      clog << "Method: " << method << endl;
       clog << "-----------------------------------------" << endl;
    }
 
-   if ( method != "sequential" || rank == 0 ) {
+   std::vector<std::string> methods = { "sequential", "kmeans", "kmeansSGD" };
+
+   for ( auto i : methods ) {
+      MPI_Barrier(MPI_COMM_WORLD);
+
+      if ( method != i && method != "compare" ) continue;
+      if ( i == "sequential" && rank != 0 ) continue;
+
+      kMeansBase * solver = nullptr;
+
+      if ( i == "sequential" ) {
+         solver = new kMeansSeq ( n, dataset );
+         solver->setStop ( 100, -1, 1 );
+      }
+
+      else if ( i == "kmeans" ) {
+         solver = new kMeans ( n, dataset );
+         solver->setStop ( -1, -1, 1 );
+      }
+
+      else if ( i == "kmeansSGD" ) {
+         solver = new kMeansSGD ( n, dataset );
+         solver->setStop ( -1, -1, 5 );
+      }
+
+      if ( purityTest ) solver->setTrueLabels ( trueLabels );
+      solver->setK ( k );
+
+      timer tm;
+
       tm.start();
-      solver->solve ();
+      solver->solve();
       tm.stop();
+
+      if ( rank == 0 && !suppressLog ) {
+         clog << "Method: " << i << endl;
+         clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
+         clog << "Converged in " << solver->getIter() << " iterations" << endl;
+         if ( purityTest ) clog << "Clustering purity: " << solver->purity() << endl;
+         clog << "Cluster counts: ";
+         for ( int kk = 0; kk < k; ++kk ) clog << solver->getClusterCount(kk) << " ";
+         clog << endl;
+
+         clog << "-----------------------------------------" << endl;
+
+         if ( !suppressOutput && method != "compare" ) cout << (*solver);
+      }
+
+      delete solver;
    }
-
-   if ( rank == 0 ) {
-      clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
-      clog << "Converged in " << solver->getIter() << " iterations" << endl;
-      if ( purityTest ) clog << "Clustering purity: " << solver->purity() << endl;
-      clog << "-----------------------------------------" << endl;
-
-      clog << "Cluster counts:" << endl;
-      for ( int kk = 0; kk < k; ++kk ) clog << solver->getClusterCount(kk) << " ";
-      clog << endl;
-
-      clog << "-----------------------------------------" << endl;
-
-      // cout << (*solver);
-   }
-
-   delete solver;
 
    MPI_Finalize ();
    return 0;

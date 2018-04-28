@@ -121,6 +121,11 @@ void kMeansBase::readTrueLabels ( std::istream& in, int offset ) {
    }
 }
 
+void kMeansBase::setTrueLabels ( const std::vector<int>& in, int offset ) {
+   for ( unsigned int i = 0; i < in.size(); ++i )
+      dataset[i].setTrueLabel ( in[i] + offset );
+}
+
 real kMeansBase::purity ( void ) const {
    // True labels of the clusters
    std::vector<int> trueLabels ( k, -1 );
@@ -157,21 +162,29 @@ real kMeansBase::purity ( void ) const {
    return result / dataset.size();
 }
 
-std::istream& operator>> ( std::istream &in, kMeansBase &km ) {
+std::istream& operator>> ( std::istream &in, kMeansDataset &km ) {
    unsigned int i = 0;
+   unsigned int n = 0;
    real tmp = 0;
-   in >> km.n;
-   point p ( km.n );
+
+   in >> n;
+   point p ( n );
 
    while ( in >> tmp ) {
       p[i] = tmp;
-      if ( i == km.n - 1 ) {
-         km.dataset.push_back(p);
+      if ( i == n - 1 ) {
+         km.push_back(p);
          i = 0;
       }
       else i++;
    }
 
+   return in;
+}
+
+std::istream& operator>> ( std::istream &in, std::vector<int> & out ) {
+   int tmp;
+   while ( in >> tmp ) out.push_back(tmp);
    return in;
 }
 

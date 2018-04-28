@@ -97,6 +97,16 @@ struct kMeansStop {
    int minLabelChanges = 1;
 };
 
+typedef std::vector<point> kMeansDataset;
+
+// Read a dataset from an input stream
+// File format:
+// <dimension of the points>
+// <coordinates 0>
+// <coordinates 1>
+// ...
+std::istream& operator>> ( std::istream&, kMeansDataset & );
+
 // K-means solver base class
 class kMeansBase {
 protected:
@@ -107,7 +117,7 @@ protected:
    unsigned int n = 1;
 
    // Points of the data set
-   std::vector<point> dataset;
+   kMeansDataset dataset;
 
    // Centroids
    // Centroid for cluster of label 0 is centroids[0], etc...
@@ -126,7 +136,7 @@ protected:
    kMeansStop stoppingCriterion;
 public:
    // Constructor
-   kMeansBase ( unsigned int nn, const std::vector<point> & pts ) :
+   kMeansBase ( unsigned int nn, const kMeansDataset & pts ) :
       n(nn), dataset(pts) { }
 
    // Constructor: reads the dataset from the given input stream
@@ -135,7 +145,7 @@ public:
    // Constructor: reads the dataset from the first input stream, and gets the
    // true labels from the second input stream
    kMeansBase ( std::istream& datasetIn, std::istream& trueLabelsIn ) {
-      datasetIn >> (*this);
+      datasetIn >> dataset;
       readTrueLabels(trueLabelsIn);
    }
 
@@ -153,6 +163,9 @@ public:
       stoppingCriterion.minLabelChanges = minLabCh;
    }
    kMeansStop getStop ( void ) const { return stoppingCriterion; }
+
+   // Getter for the dataset
+   const std::vector<point> & getDataset ( void ) const { return dataset; }
 
    // Get the dimension of the points
    unsigned int getN ( void ) const { return n; }
@@ -183,6 +196,9 @@ public:
    // The labels are assumed to be in the same order as the points in the dataset
    void readTrueLabels ( std::istream&, int = -1 );
 
+   // Set the true labels from a vector
+   void setTrueLabels ( const std::vector<int> &, int = -1 );
+
    // Compute and return the purity of the clustering
    // Each cluster is assigned to the true label that is most frequent in it, then
    // we sum up the assignments to that label. Purity is the fraction of points in
@@ -194,14 +210,6 @@ public:
    int getClusterCount ( int l ) const { return counts[l]; }
 };
 
-// Read a dataset from an input stream and stores it into a kmeans object
-// File format:
-// <dimension of the points>
-// <coordinates 0>
-// <coordinates 1>
-// ...
-std::istream& operator>> ( std::istream&, kMeansBase & );
-
 // Output the results on a stream
 // Output file format:
 // <dimension of the points>
@@ -210,5 +218,7 @@ std::istream& operator>> ( std::istream&, kMeansBase & );
 // <label 1> <coordinates 1>
 // ...
 std::ostream& operator<< ( std::ostream&, const kMeansBase & );
+
+std::istream& operator>> ( std::istream&, std::vector<int> & );
 
 #endif

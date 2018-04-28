@@ -8,9 +8,9 @@ EXE = main.out
 NP = 2
 
 METHOD = kmeans
-TEST = g500000
-K = 6
-ARGS = -t $(TEST) -k $(K) -m $(METHOD) --purity
+TEST = g1M-20-5
+K = 5
+ARGS = -t $(TEST) -k $(K) -m $(METHOD) --purity --no-output
 
 all : $(EXE)
 
