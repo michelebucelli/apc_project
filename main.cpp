@@ -44,9 +44,9 @@ int main ( int argc, char * argv[] ) {
 
    else if ( method == "kmeansSGD" ) {
       kMeansSGD * slv = purityTest ? new kMeansSGD ( datasetIn, trueLabelsIn ) : new kMeansSGD ( datasetIn );
-      slv->setBatchSize ( 10*size );
+      slv->setBatchSize ( 20*size );
       solver = slv;
-      solver->setStop ( solver->size(), -1, 1 );
+      solver->setStop ( solver->size(), -1, 8 );
    }
 
    else {
@@ -85,7 +85,7 @@ int main ( int argc, char * argv[] ) {
 
       clog << "-----------------------------------------" << endl;
 
-      cout << (*solver);
+      // cout << (*solver);
    }
 
    delete solver;
