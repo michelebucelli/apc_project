@@ -12,7 +12,7 @@ void kMeansSGD::solve ( void ) {
    // of the batch and performs the algorithm, Size of each batch is in the
    // member batchSize
 
-   std::default_random_engine eng ( 1 );
+   std::default_random_engine eng ( rank );
    std::uniform_int_distribution<unsigned int> distro ( 0, dataset.size() - 1 );
 
    iter = 0;
@@ -32,7 +32,7 @@ void kMeansSGD::solve ( void ) {
 
    multiTimer tm ( 2 );
 
-   while ( stopIters < 10 ) {
+   while ( stopIters < 15 ) {
       if ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) stopIters = 0;
@@ -41,25 +41,16 @@ void kMeansSGD::solve ( void ) {
       tm.start ( 0 );
       if ( rank == 0 ) clog << std::setw(8) << iter << " " << flush;
 
-      oldCentroids = centroids;
+      if ( stoppingCriterion.minCentroidDisplacement > 0 )
+         oldCentroids = centroids;
+
       changes = 0;
-
-      // Pick random entries in the dataset
-      std::vector<int> indices ( batchSize, -1 );
-      std::vector<int> oldLabels ( batchSize, -5 );
-
-      indices[0] = distro(eng);
-      oldLabels[0] = dataset[indices[0]].getLabel();
-      for ( int i = 1; i < batchSize; ++i ) {
-         indices[i] = distro(eng);
-         oldLabels[i] = dataset[indices[i]].getLabel();
-      }
 
       std::vector<unsigned int> changed;
       std::vector<int> newLabels;
 
       for ( int i = rank; i < batchSize; i += size ) {
-         unsigned int idx = indices[i];
+         unsigned int idx = distro(eng);
 
          // Find the nearest centroid
          int nearestLabel = 0;
