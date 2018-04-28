@@ -15,6 +15,37 @@ using std::cout;
 using std::clog;
 using std::endl;
 
+void printHelp ( void ) {
+   clog << "Stochastic Gradient Descent applied to K-Means" << endl;
+   clog << "Michele Bucelli, Jose' Villafan" << endl;
+   clog << "Algorithms and Parallel Computing course" << endl;
+   clog << "Politecnico di Milano - A.Y. 2017/2018" << endl << endl;
+   clog << "Purpose: the program takes in input a dataset consisting of points\n"
+           "in R^n and performs k-means clustering on it, using one of three\n"
+           "possible algorithms, making use of parallel computing where needed." << endl << endl;
+   clog << "Usage: mpirun -np <processes> main.out -t|--test <testname>\n"
+        << "              -k <clusters> -m|--method <method> [--purity]\n"
+        << "              [--no-output] [--no-log]" << endl << endl;
+   clog << "Output: result of the clustering is printed on the standard output\n"
+        << "in an Octave/MatLab-compatible format." << endl << endl;
+   clog << "Parameters:\n"
+        << " -t|--test <testname> : specifies the name of the test; there must\n"
+        << "      be a corresponding <testname>.txt file in the benchmarks\n"
+        << "      subfolder; if purity testing is enabled, there must also be\n"
+        << "      a <testname>-truelabels.txt file in the benchmarks subfolder\n"
+        << " -k <clusters> : number of clusters the algorithm should produce\n"
+        << " -m|--method <method> : specifies the method to be used; available\n"
+        << "      methods are:\n"
+        << "         sequential - performs k-means without parallelization\n"
+        << "         kmeans - performs k-means in parallel\n"
+        << "         kmeansSGD - performs k-means with stochastic gradient descent\n"
+        << "         compare - tests all methods reporting timing results; no\n"
+        << "           output is produced in this case\n"
+        << " --purity : enables purity evaluation for the produced clusters\n"
+        << " --no-output : disables output result\n"
+        << " --no-log : disables logging\n" << endl;
+}
+
 int main ( int argc, char * argv[] ) {
    MPI_Init ( &argc, &argv );
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
@@ -22,6 +53,12 @@ int main ( int argc, char * argv[] ) {
 
    // Read parameters from command line
    GetPot cmdLine ( argc, argv );
+
+   if ( cmdLine.search("-h") || cmdLine.search("--help") ) {
+      printHelp();
+      return 0;
+   }
+
    std::string test = cmdLine.follow("g1M-20-5", 2, "-t", "--test" ); // Test name
    int k = cmdLine.follow(5, 1, "-k" ); // Number of clusters
    std::string method = cmdLine.follow("sequential", 2, "-m", "--method" ); // Method : sequential, kmeans, kmeansSGD, compare
