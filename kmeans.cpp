@@ -1,5 +1,6 @@
 #include "kmeans.h"
 #include <iostream>
+#include <iomanip>
 #include "timer.h"
 using std::clog; using std::endl; using std::flush;
 
@@ -24,12 +25,13 @@ void kMeans::solve ( void ) {
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
 
       tm.start();
-      if ( rank == 0 ) clog << iter << "\t" << flush;
+      if ( rank == 0 ) clog << std::setw(8) << iter << " " << flush;
 
       oldCentroids = centroids;
       changes = 0;
 
-      std::vector<int> oldLabels ( dataset.size(), 0 );
+      std::vector<unsigned int> changed;
+      std::vector<int> newLabels;
 
       // Assigns each point to the group of the closest centroid
       for ( unsigned int i = rank; i < dataset.size(); i += size ) {
@@ -45,41 +47,45 @@ void kMeans::solve ( void ) {
             }
          }
 
-         oldLabels[i] = dataset[i].getLabel();
-         dataset[i].setLabel(nearestLabel);
+         if ( dataset[i].getLabel() != nearestLabel ) {
+            changed.push_back(i);
+            newLabels.push_back(nearestLabel);
+         }
       }
 
       tm.stop();
-      if ( rank == 0 ) clog << tm.getTime() << "\t" << flush;
+      if ( rank == 0 ) clog << std::setw(8) << tm.getTime() << " " << flush;
       tm.start();
 
-      // Collects the assignments
-      for ( int i = 0; i < int(dataset.size()); ++i ) {
-         int lab = dataset[i].getLabel();
-         MPI_Bcast ( &lab, 1, MPI_INT, i % size, MPI_COMM_WORLD );
+      for ( int i = 0; i < size; ++i ) { // For each process
+         int nchanged = changed.size();
+         MPI_Bcast ( &nchanged, 1, MPI_INT, i, MPI_COMM_WORLD );
 
-         auto oldLabel = rank == i % size ? oldLabels[i] : dataset[i].getLabel();
+         for ( int j = 0; j < nchanged; ++j ) {
+              int idx = rank == i ? changed[j] : 0;   MPI_Bcast ( &idx, 1, MPI_INT, i, MPI_COMM_WORLD );
+            short lab = rank == i ? newLabels[j] : 0; MPI_Bcast ( &lab, 1, MPI_SHORT, i, MPI_COMM_WORLD );
 
-         if ( oldLabel != lab ) {
-            counts[oldLabel] -= 1;
-            counts[lab] += 1;
+            auto oldLabel = dataset[idx].getLabel();
 
-            changes++;
+            if ( oldLabel != lab ) {
+               counts[oldLabel] -= 1;
+               counts[lab] += 1;
+               changes++;
+            }
+
+            dataset[idx].setLabel ( lab );
          }
-
-         if ( rank != i % size )
-            dataset[i].setLabel ( lab );
       }
 
       tm.stop();
-      if ( rank == 0 ) clog << tm.getTime() << "\t" << flush;
+      if ( rank == 0 ) clog << std::setw(8) << tm.getTime() << " " << flush;
       tm.start();
 
       // Computes the centroids in the current configuration
       computeCentroids();
 
       tm.stop();
-      if ( rank == 0 ) clog << tm.getTime() << "\t" << changes << endl;
+      if ( rank == 0 ) clog << std::setw(8) << tm.getTime() << " " << changes << endl;
       tm.start();
 
       // Compute the max displacement of the centroids
