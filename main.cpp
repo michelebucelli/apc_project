@@ -112,6 +112,7 @@ int main ( int argc, char * argv[] ) {
       else if ( i == "kmeansSGD" ) {
          solver = new kMeansSGD ( n, dataset );
          solver->setStop ( -1, -1, 5 );
+         solver->setBatchSize ( 10*size );
       }
 
       if ( purityTest ) solver->setTrueLabels ( trueLabels );
