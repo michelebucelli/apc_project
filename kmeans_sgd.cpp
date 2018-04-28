@@ -30,16 +30,11 @@ void kMeansSGD::solve ( void ) {
    // This helps checking that actual convergence takes place
    int stopIters = 0;
 
-   multiTimer tm ( 2 );
-
    while ( stopIters < 15 ) {
       if ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) stopIters = 0;
       else stopIters++;
-
-      tm.start ( 0 );
-      if ( rank == 0 ) clog << std::setw(8) << iter << " " << flush;
 
       if ( stoppingCriterion.minCentroidDisplacement > 0 )
          oldCentroids = centroids;
@@ -71,10 +66,6 @@ void kMeansSGD::solve ( void ) {
          }
       }
 
-      tm.stop ( 0 );
-      if ( rank == 0 ) clog << std::setw(8) << tm.getTime(0) << " " << flush;
-      tm.start ( 1 );
-
       for ( int i = 0; i < size; ++i ) { // For each process
          int nchanged = changed.size();
          MPI_Bcast ( &nchanged, 1, MPI_INT, i, MPI_COMM_WORLD );
@@ -101,9 +92,6 @@ void kMeansSGD::solve ( void ) {
          }
       }
 
-      tm.stop( 1 );
-      if ( rank == 0 ) clog << std::setw(8) << tm.getTime(1) << " " << std::setw(8) << changes << endl;
-
       // Compute the max displacement of the centroids
       if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
          centroidDispl = 0;
@@ -115,11 +103,5 @@ void kMeansSGD::solve ( void ) {
       }
 
       ++iter;
-   }
-
-   if ( rank == 0 ) {
-      clog << "-----------------------------------------" << endl;
-      clog << std::setw(8) << iter << " " << tm.cumulatesToString() << endl;
-      clog << "-----------------------------------------" << endl;
    }
 }

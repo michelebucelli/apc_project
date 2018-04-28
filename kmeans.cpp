@@ -18,14 +18,9 @@ void kMeans::solve ( void ) {
    randomize();
    computeCentroids();
 
-   timer tm;
-
    while ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
-
-      tm.start();
-      if ( rank == 0 ) clog << std::setw(8) << iter << " " << flush;
 
       oldCentroids = centroids;
       changes = 0;
@@ -53,10 +48,6 @@ void kMeans::solve ( void ) {
          }
       }
 
-      tm.stop();
-      if ( rank == 0 ) clog << std::setw(8) << tm.getTime() << " " << flush;
-      tm.start();
-
       for ( int i = 0; i < size; ++i ) { // For each process
          int nchanged = changed.size();
          MPI_Bcast ( &nchanged, 1, MPI_INT, i, MPI_COMM_WORLD );
@@ -77,16 +68,8 @@ void kMeans::solve ( void ) {
          }
       }
 
-      tm.stop();
-      if ( rank == 0 ) clog << std::setw(8) << tm.getTime() << " " << flush;
-      tm.start();
-
       // Computes the centroids in the current configuration
       computeCentroids();
-
-      tm.stop();
-      if ( rank == 0 ) clog << std::setw(8) << tm.getTime() << " " << changes << endl;
-      tm.start();
 
       // Compute the max displacement of the centroids
       if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
@@ -100,6 +83,4 @@ void kMeans::solve ( void ) {
 
       ++iter;
    }
-
-   if ( rank == 0 ) clog << "-----------------------------------------" << endl;
 }
