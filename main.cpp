@@ -95,7 +95,7 @@ int main ( int argc, char * argv[] ) {
       MPI_Barrier(MPI_COMM_WORLD);
 
       if ( method != i && method != "compare" ) continue;
-      if ( i == "sequential" && rank != 0 ) continue;
+      if ( i == "sequential" && (rank != 0 || method == "compare") ) continue;
 
       kMeansBase * solver = nullptr;
 
