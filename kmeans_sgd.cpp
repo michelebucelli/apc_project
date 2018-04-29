@@ -12,16 +12,13 @@ void kMeansSGD::solve ( void ) {
    // of the batch and performs the algorithm, Size of each batch is in the
    // member batchSize
 
-   std::default_random_engine eng ( rank );
-   std::uniform_int_distribution<unsigned int> distro ( 0, dataset.size() - 1 );
-
    iter = 0;
 
    // Randomize initial assignments
    randomize();
    computeCentroids();
 
-   int changes = stoppingCriterion.minLabelChanges + 1;
+   int changesCount = stoppingCriterion.minLabelChanges + 1;
    real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
@@ -30,24 +27,37 @@ void kMeansSGD::solve ( void ) {
    // This helps checking that actual convergence takes place
    int stopIters = 0;
 
+   std::uniform_int_distribution<unsigned int> distro ( 0, dataset.size() - 1 );
+   std::default_random_engine eng ( 1 );
+
    while ( stopIters < 15 ) {
+
+      // Checks if stopping criterion is satisfied at this iteration, and possibly
+      // increment the counter
       if ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
-        && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
+        && (stoppingCriterion.minLabelChanges <= 0 || changesCount >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) stopIters = 0;
       else stopIters++;
 
       if ( stoppingCriterion.minCentroidDisplacement > 0 )
          oldCentroids = centroids;
 
-      changes = 0;
+      // Vector of vectors of changes to be made
+      // changes[k][i] = j means that the element of index j has to be set to label k
+      std::vector< std::vector<int> > changes ( k, std::vector<int> () );
+      changesCount = 0;
 
-      std::vector<unsigned int> changed;
-      std::vector<int> newLabels;
-
+      // Determines the changes to be made on the assigned portion of the batch.
+      // Those changes are initially stored in the vector changes, and only later
+      // sent to the other processes and applied
       for ( int i = rank; i < batchSize; i += size ) {
+         // Randomly selects a point
+         // We reseed the random engine every time to make sure that each execution
+         // gives the same result, for performance testing purposes
+         eng.seed ( 2 * iter * batchSize + i );
          unsigned int idx = distro(eng);
 
-         // Find the nearest centroid
+         // Find the nearest centroid to the selected point
          int nearestLabel = 0;
          real nearestDist = dist2 ( dataset[idx], centroids[0] );
 
@@ -59,40 +69,47 @@ void kMeansSGD::solve ( void ) {
             }
          }
 
-         // Set the label of the picked point
-         if ( nearestLabel != dataset[idx].getLabel() ) {
-            changed.push_back(idx);
-            newLabels.push_back(nearestLabel);
-         }
+         // Insert the picked point in the changes vector according to the chosen
+         // label
+         if ( nearestLabel != dataset[idx].getLabel() )
+            changes[nearestLabel].push_back(idx);
       }
 
-      for ( int i = 0; i < size; ++i ) { // For each process
-         int nchanged = changed.size();
-         MPI_Bcast ( &nchanged, 1, MPI_INT, i, MPI_COMM_WORLD );
+      // Now processes communicate the changes they have made
+      // Each process broadcasts for each label kk the number of points that have been
+      // assigned to that label during this iteration (i.e. changes[kk].size), then
+      // broadcasts the indices of those points one by one
+      for ( int i = 0; i < size; ++i ) { // For each process...
+         for ( unsigned int kk = 0; kk < k; ++kk ) { // ...and for each label
+            int nk = changes[kk].size();
+            MPI_Bcast ( &nk, 1, MPI_INT, i, MPI_COMM_WORLD );
 
-         for ( int j = 0; j < nchanged; ++j ) {
-              int idx = rank == i ? changed[j] : 0;   MPI_Bcast ( &idx, 1, MPI_INT, i, MPI_COMM_WORLD );
-            short lab = rank == i ? newLabels[j] : 0; MPI_Bcast ( &lab, 1, MPI_SHORT, i, MPI_COMM_WORLD );
+            for ( int j = 0; j < nk; ++j ) {
+               int idx = rank == i ? changes[kk][j] : 0;
+               MPI_Bcast ( &idx, 1, MPI_INT, i, MPI_COMM_WORLD );
 
-            auto oldLabel = dataset[idx].getLabel();
+               auto oldLabel = dataset[idx].getLabel();
 
-            if ( oldLabel != lab ) {
-               changes++;
+               changesCount++;
 
                counts[oldLabel] -= 1;
-               counts[lab] += 1;
+               counts[kk] += 1;
 
+               // Since with this algorithm the amount of changes will be relatively
+               // small (surely <= batchSize, very likely << batchSize, especially
+               // when approaching convergence) it is much more efficient to update
+               // centroids with changes rather than recomputing them
                for ( unsigned int nn = 0; nn < n; ++nn ) {
-                  centroids[lab][nn] += ( dataset[idx][nn] - centroids[lab][nn] ) / counts[lab];
+                  centroids[kk][nn] += ( dataset[idx][nn] - centroids[kk][nn] ) / counts[kk];
                   centroids[oldLabel][nn] += ( centroids[oldLabel][nn] - dataset[idx][nn] ) / counts[oldLabel];
                }
-            }
 
-            dataset[idx].setLabel ( lab );
+               dataset[idx].setLabel ( kk );
+            }
          }
       }
 
-      // Compute the max displacement of the centroids
+      // Compute the max displacement of the centroids for the stopping criterion
       if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
          centroidDispl = 0;
          for ( unsigned kk = 0; kk < k; ++kk ) {

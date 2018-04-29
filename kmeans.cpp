@@ -10,8 +10,7 @@ void kMeans::solve ( void ) {
 
    iter = 0;
 
-   // This variable counts how many points have changed label during each iteration
-   int changes = stoppingCriterion.minLabelChanges + 1;
+   int changesCount = stoppingCriterion.minLabelChanges + 1;
    real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
@@ -19,20 +18,25 @@ void kMeans::solve ( void ) {
    computeCentroids();
 
    while ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
-        && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
+        && (stoppingCriterion.minLabelChanges <= 0 || changesCount >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
 
-      oldCentroids = centroids;
-      changes = 0;
+      if ( stoppingCriterion.minCentroidDisplacement > 0 )
+        oldCentroids = centroids;
 
-      std::vector<unsigned int> changed;
-      std::vector<int> newLabels;
+      // Vector of vectors of changes to be made
+      // changes[k][i] = j means that the element of index j has to be set to label k
+      std::vector< std::vector<int> > changes ( k, std::vector<int> () );
+      changesCount = 0;
 
-      // Assigns each point to the group of the closest centroid
+      // Assigns each point to the group of the closest centroid. The changes to
+      // be made are initially stored in the vector changes, and are applied only
+      // later while broadcasting them to the other processes
       for ( unsigned int i = rank; i < dataset.size(); i += size ) {
          real nearestDist = dist2 ( dataset[i], centroids[0] );
          int nearestLabel = 0;
 
+         // Finding the nearest of the centroids
          for ( unsigned int kk = 1; kk < k; ++kk ) {
             real d = dist2 ( dataset[i], centroids[kk] );
 
@@ -42,33 +46,36 @@ void kMeans::solve ( void ) {
             }
          }
 
-         if ( dataset[i].getLabel() != nearestLabel ) {
-            changed.push_back(i);
-            newLabels.push_back(nearestLabel);
-         }
+         if ( dataset[i].getLabel() != nearestLabel )
+            changes[nearestLabel].push_back(i);
       }
 
-      for ( int i = 0; i < size; ++i ) { // For each process
-         int nchanged = changed.size();
-         MPI_Bcast ( &nchanged, 1, MPI_INT, i, MPI_COMM_WORLD );
+      // Now processes communicate the changes they have made
+      // Each process broadcasts for each label kk the number of points that have been
+      // assigned to that label during this iteration (i.e. changes[kk].size), then
+      // broadcasts the indices of those points one by one
+      for ( int i = 0; i < size; ++i ) { // For each process...
+         for ( unsigned int kk = 0; kk < k; ++kk ) { // ...and for each label
+            int nk = changes[kk].size();
+            MPI_Bcast ( &nk, 1, MPI_INT, i, MPI_COMM_WORLD );
 
-         for ( int j = 0; j < nchanged; ++j ) {
-              int idx = rank == i ? changed[j] : 0;   MPI_Bcast ( &idx, 1, MPI_INT, i, MPI_COMM_WORLD );
-            short lab = rank == i ? newLabels[j] : 0; MPI_Bcast ( &lab, 1, MPI_SHORT, i, MPI_COMM_WORLD );
+            for ( int j = 0; j < nk; ++j ) {
+               int idx = rank == i ? changes[kk][j] : 0;
+               MPI_Bcast ( &idx, 1, MPI_INT, i, MPI_COMM_WORLD );
 
-            auto oldLabel = dataset[idx].getLabel();
+               auto oldLabel = dataset[idx].getLabel();
 
-            if ( oldLabel != lab ) {
+               changesCount++;
+
                counts[oldLabel] -= 1;
-               counts[lab] += 1;
-               changes++;
-            }
+               counts[kk] += 1;
 
-            dataset[idx].setLabel ( lab );
+               dataset[idx].setLabel ( kk );
+            }
          }
       }
 
-      // Computes the centroids in the current configuration
+      // Recomputes the centroids in the current configuration
       computeCentroids();
 
       // Compute the max displacement of the centroids
