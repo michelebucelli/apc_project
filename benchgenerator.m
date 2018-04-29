@@ -3,7 +3,7 @@ close all;
 clc;
 
 % Number of points per cluster
-N = 5e4;
+N = 5e5;
 
 % Number of clusters
 k = 5;

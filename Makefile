@@ -1,5 +1,5 @@
 CXX = mpicxx
-CXXFLAGS = -Wall -std=c++14
+CXXFLAGS += -Wall -std=c++14 -O3 -DNDEBUG
 
 OBJECTS = main.o kmeans_base.o kmeans.o kmeans_sgd.o kmeans_seq.o
 OUTPUT = output.txt
