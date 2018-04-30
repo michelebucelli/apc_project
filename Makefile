@@ -24,7 +24,7 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	nice -20 mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
+	mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
 
 plot : $(OUTPUT)
 	@ octave plotScript.m

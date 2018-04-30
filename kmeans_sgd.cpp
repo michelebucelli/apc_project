@@ -53,7 +53,7 @@ void kMeansSGD::solve ( void ) {
       // Determines the changes to be made on the assigned portion of the batch.
       // Those changes are initially stored in the vector changes, and only later
       // sent to the other processes and applied
-      for ( int i = 0; i < batchSize / size; ++i ) {
+      for ( int i = rank; i < batchSize; i += size ) {
          // Randomly selects a point
          unsigned int idx = distro(eng);
 
