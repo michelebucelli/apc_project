@@ -60,8 +60,8 @@ int main ( int argc, char * argv[] ) {
    }
 
    std::string test = cmdLine.follow("g1M-20-5", 2, "-t", "--test" ); // Test name
-   int k = cmdLine.follow(5, 1, "-k" ); // Number of clusters
    std::string method = cmdLine.follow("sequential", 2, "-m", "--method" ); // Method : sequential, kmeans, kmeansSGD, compare
+   int k = cmdLine.follow(5, 1, "-k" ); // Number of clusters
    bool purityTest = cmdLine.search("-p") || cmdLine.search("--purity" ); // Purity flag test
    bool suppressOutput = cmdLine.search("--no-output"); // Disable output
    bool suppressLog = cmdLine.search("--no-log"); // Disable log
@@ -71,11 +71,13 @@ int main ( int argc, char * argv[] ) {
    kMeansDataset dataset;
    datasetIn >> dataset;
    unsigned int n = dataset[0].getN();
+   datasetIn.close();
 
    // Read the true labels
    std::ifstream trueLabelsIn ( "./benchmarks/" + test + "-truelabels.txt" );
    std::vector<int> trueLabels;
    trueLabelsIn >> trueLabels;
+   trueLabelsIn.close();
 
    // Dataset info on log
    if ( rank == 0 && !suppressLog ) {
@@ -99,26 +101,31 @@ int main ( int argc, char * argv[] ) {
 
       kMeansBase * solver = nullptr;
 
+      // Sequential kMeans
       if ( i == "sequential" ) {
-         solver = new kMeansSeq ( n, dataset );
+         solver = new kMeansSeq ( n, dataset.begin(), dataset.end() );
          solver->setStop ( 100, -1, 1 );
+
+         if ( purityTest )
+            solver->setTrueLabels ( trueLabels.begin(), trueLabels.end() );
       }
 
       else if ( i == "kmeans" ) {
-         solver = new kMeans ( n, dataset );
+         solver = new kMeans ( n, dataset.begin(), dataset.end() );
          solver->setStop ( -1, -1, 1 );
       }
 
       else if ( i == "kmeansSGD" ) {
-         auto tmp = new kMeansSGD ( n, dataset );
+         auto tmp = new kMeansSGD ( n, dataset.begin(), dataset.end() );
+
          tmp->setBatchSize ( 1000 );
          tmp->setStop ( -1, -1, 50 );
 
          solver = tmp;
       }
 
-      if ( purityTest ) solver->setTrueLabels ( trueLabels );
       solver->setK ( k );
+      solver->setTrueLabels ( trueLabels.begin(), trueLabels.end() );
 
       timer tm;
 
@@ -126,18 +133,16 @@ int main ( int argc, char * argv[] ) {
       solver->solve();
       tm.stop();
 
+      double purity = purityTest ? solver->purity() : 0;
+
       if ( rank == 0 && !suppressLog ) {
          clog << "Method: " << i << endl;
          clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
          clog << "Converged in " << solver->getIter() << " iterations" << endl;
-         if ( purityTest ) clog << "Clustering purity: " << solver->purity() << endl;
-         clog << "Cluster counts: ";
-         for ( int kk = 0; kk < k; ++kk ) clog << solver->getClusterCount(kk) << " ";
-         clog << endl;
-
+         if ( purityTest ) clog << "Clustering purity: " << purity << endl;
          clog << "-----------------------------------------" << endl;
 
-         if ( !suppressOutput && method != "compare" ) cout << (*solver);
+         // if ( !suppressOutput && method != "compare" ) cout << (*solver);
       }
 
       delete solver;

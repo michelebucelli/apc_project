@@ -1,13 +1,12 @@
 #ifndef _KMEANS_H
 #define _KMEANS_H
 
-#include "kmeans_base.h"
+#include "kmeans_parallel.h"
 
-class kMeans : public kMeansBase {
+class kMeans : public kMeansParallelBase {
 public:
-   kMeans ( unsigned int nn, const std::vector<point> & pts ) : kMeansBase ( nn, pts ) { }
-   kMeans ( std::istream& in ) : kMeansBase(in) { };
-   kMeans ( std::istream& datasetIn, std::istream& trueLabelsIn ) : kMeansBase ( datasetIn, trueLabelsIn ) { };
+   kMeans ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) :
+      kMeansParallelBase ( nn, a, b ) { }
 
    // Solve method
    void solve ( void ) override;

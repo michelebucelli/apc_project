@@ -1,73 +1,8 @@
 #include "kmeans_base.h"
+using std::clog; using std::endl;
 
-std::ostream& operator<< ( std::ostream& out, const point &pt ) {
-   out << pt.getLabel() << " ";
-
-   unsigned int i = 0;
-   for ( ; i < pt.getN() - 1; ++i )
-      out << pt[i] << " ";
-   out << pt[i];
-
-   return out;
-}
-
-real dist2 ( const point& a, const point& b ) {
-   assert ( a.getN() == b.getN() );
-
-   real sum = 0; real x = 0;
-   for ( unsigned int i = 0; i < a.getN(); ++i ) {
-      x = a[i] - b[i];
-      sum += x*x;
-   }
-
-   return sum;
-}
-
-point operator+ ( const point& a, const point& b ) {
-   assert ( a.getN() == b.getN() );
-
-   point result ( a.getN() );
-   for ( unsigned int i = 0; i < a.getN(); ++i )
-      result[i] = a[i] + b[i];
-
-   return result;
-}
-
-point operator- ( const point& a, const point& b ) {
-   assert ( a.getN() == b.getN() );
-
-   point result ( a.getN() );
-   for ( unsigned int i = 0; i < a.getN(); ++i )
-      result[i] = a[i] - b[i];
-
-   return result;
-}
-
-point& operator+= ( point &a, const point &b ) {
-   assert ( a.getN() == b.getN() );
-   a = a + b;
-   return a;
-}
-
-point operator/ ( const point &a, real t ) {
-   point result ( a );
-   for ( unsigned int i = 0; i < a.getN(); ++i )
-      result[i] /= t;
-   return result;
-}
-
-void mpi_point_send ( unsigned int dest, const point & pt ) {
-   MPI_Send ( pt.data(), pt.getN(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD );
-}
-
-point mpi_point_recv ( unsigned int src, unsigned int n ) {
-   std::vector<real> coords ( n );
-   MPI_Recv ( coords.data(), n, MPI_DOUBLE, src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
-   return point ( n, coords );
-}
-
-void mpi_point_reduce ( point * pt ) {
-   MPI_Allreduce ( MPI_IN_PLACE, pt->data(), pt->getN(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+kMeansBase::kMeansBase ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) : n(nn) {
+   dataset.assign ( a, b );
 }
 
 void kMeansBase::setK ( unsigned int kk ) {
@@ -76,56 +11,29 @@ void kMeansBase::setK ( unsigned int kk ) {
    counts = std::vector<int> ( kk, 0 );
 }
 
-void kMeansBase::computeCentroids ( void ) {
-   int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
-   int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
-
-   // Centroids are computed in parallel
-   // Each process accumulates, for each cluster, the sum of the points in that
-   // cluster and their amount, over a portion of the whole dataset
-   // Partial results are then gathered by process 0, who computes the average
-   // and assign the result to the centroids member
-
-   // Computes local sums, then reduces
-
-   centroids = std::vector<point> ( k, point(n) );
-
-   for ( unsigned int i = rank; i < dataset.size(); i += size ) {
-      unsigned int l = dataset[i].getLabel();
-      for ( unsigned int nn = 0; nn < n; ++nn )
-         centroids[l][nn] += dataset[i][nn] / counts[l];
-   }
-
-   for ( unsigned int kk = 0; kk < k; ++kk )
-      mpi_point_reduce ( &centroids[kk] );
-}
-
 void kMeansBase::randomize ( void ) {
-   std::default_random_engine eng(1);
+   std::default_random_engine eng;
    std::uniform_int_distribution<unsigned int> dist ( 0, k - 1 );
 
    counts = std::vector<int>(k,0);
 
-   for ( auto & pt : dataset ) {
+   for ( unsigned int i = 0; i < dataset.size(); i += 1 ) {
+      eng.seed ( i * 1000 );
       unsigned int lab = dist(eng);
-      pt.setLabel ( lab );
+      dataset[i].setLabel ( lab );
       counts[lab]++;
    }
 }
 
-void kMeansBase::readTrueLabels ( std::istream& in, int offset ) {
-   for ( auto & pt : dataset ) {
-      int tmp; in >> tmp;
-      pt.setTrueLabel ( tmp + offset );
+void kMeansBase::setTrueLabels ( std::vector<int>::const_iterator a, std::vector<int>::const_iterator b, int offset ) {
+   auto cur = a;
+   for ( unsigned int i = 0; i < (b - a); ++i ) {
+      dataset[i].setTrueLabel ( (*cur) + offset );
+      cur++;
    }
 }
 
-void kMeansBase::setTrueLabels ( const std::vector<int>& in, int offset ) {
-   for ( unsigned int i = 0; i < in.size(); ++i )
-      dataset[i].setTrueLabel ( in[i] + offset );
-}
-
-real kMeansBase::purity ( void ) const {
+double kMeansBase::purity ( void ) const {
    // True labels of the clusters
    std::vector<int> trueLabels ( k, -1 );
 
@@ -153,7 +61,7 @@ real kMeansBase::purity ( void ) const {
    }
 
    // Compute purity
-   real result = 0;
+   double result = 0;
 
    for ( unsigned int i = 0; i < dataset.size(); ++i )
       if ( dataset[i].getTrueLabel() == trueLabels[dataset[i].getLabel()] ) result += 1;
@@ -164,7 +72,7 @@ real kMeansBase::purity ( void ) const {
 std::istream& operator>> ( std::istream &in, kMeansDataset &km ) {
    unsigned int i = 0;
    unsigned int n = 0;
-   real tmp = 0;
+   double tmp = 0;
 
    in >> n;
    point p ( n );
@@ -185,17 +93,4 @@ std::istream& operator>> ( std::istream &in, std::vector<int> & out ) {
    int tmp;
    while ( in >> tmp ) out.push_back(tmp);
    return in;
-}
-
-std::ostream& operator<< ( std::ostream &out, const kMeansBase &km ) {
-   out << "dim = " << km.n << ";\n" << "clusters = " << km.k << ";\n";
-   out << "dataset = [ ";
-
-   unsigned int i = 0;
-   for ( ; i < km.size()-1; ++i )
-      out << km.dataset[i] << ";\n";
-
-   out << km.dataset[i] << "];";
-
-   return out;
 }

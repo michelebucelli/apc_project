@@ -7,7 +7,7 @@ else
 CXXFLAGS += -Wall -std=c++14 -DNDEBUG
 endif
 
-OBJECTS = main.o kmeans_base.o kmeans.o kmeans_sgd.o kmeans_seq.o
+OBJECTS = point.o kmeans_base.o kmeans_parallel.o kmeans.o kmeans_sgd.o kmeans_seq.o main.o
 OUTPUT = output.txt
 EXE = main.out
 
@@ -24,12 +24,12 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
+	nice -20 mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
 
 plot : $(OUTPUT)
 	@ octave plotScript.m
 
-%.o : kmeans_base.h kmeans.h kmeans_sgd.h kmeansseq.h
+%.o : point.h kmeans_base.h kmeans_parallel.h kmeans.h kmeans_sgd.h kmeansseq.h
 
 clean :
 	rm -f *.o

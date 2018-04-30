@@ -21,7 +21,7 @@ void kMeansSeq::solve ( void ) {
 
    // This variable counts how many points have changed label during each iteration
    int changes = stoppingCriterion.minLabelChanges + 1;
-   real centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
+   double centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
    computeCentroids();
@@ -35,11 +35,11 @@ void kMeansSeq::solve ( void ) {
 
       // Assigns each point to the group of the closest centroid
       for ( unsigned int i = 0; i < dataset.size(); i++ ) {
-         real nearestDist = dist2 ( dataset[i], centroids[0] );
+         double nearestDist = dist2 ( dataset[i], centroids[0] );
          int nearestLabel = 0;
 
          for ( unsigned int kk = 1; kk < k; ++kk ) {
-            real d = dist2 ( dataset[i], centroids[kk] );
+            double d = dist2 ( dataset[i], centroids[kk] );
 
             if ( d < nearestDist ) {
                nearestDist = d;
@@ -63,7 +63,7 @@ void kMeansSeq::solve ( void ) {
       if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
          centroidDispl = 0;
          for ( unsigned kk = 0; kk < k; ++kk ) {
-            real displ = dist2 ( oldCentroids[kk], centroids[kk] );
+            double displ = dist2 ( oldCentroids[kk], centroids[kk] );
             if ( displ > centroidDispl ) centroidDispl = displ;
          }
          centroidDispl = sqrt(centroidDispl);

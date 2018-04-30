@@ -7,9 +7,8 @@
 // Used for timing reference
 class kMeansSeq : public kMeansBase {
 public:
-   kMeansSeq ( unsigned int nn, const std::vector<point> & pts ) : kMeansBase ( nn, pts ) { }
-   kMeansSeq ( std::istream& in ) : kMeansBase(in) { };
-   kMeansSeq ( std::istream& datasetIn, std::istream& trueLabelsIn ) : kMeansBase ( datasetIn, trueLabelsIn ) { };
+   kMeansSeq ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) :
+      kMeansBase ( nn, a, b ) { }
 
    // Randomize and compute centroids are overridden to be without parallelization
    // Function to recompute the centroids
