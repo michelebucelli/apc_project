@@ -14,9 +14,9 @@ std::ostream& operator<< ( std::ostream& out, const point &pt ) {
 real dist2 ( const point& a, const point& b ) {
    assert ( a.getN() == b.getN() );
 
-   real sum = 0;
+   real sum = 0; real x = 0;
    for ( unsigned int i = 0; i < a.getN(); ++i ) {
-      real x = a[i] - b[i];
+      x = a[i] - b[i];
       sum += x*x;
    }
 

@@ -4,7 +4,7 @@ OPTIMIZE = F
 ifeq ($(OPTIMIZE),T)
 CXXFLAGS += -Wall -std=c++14 -O3 -DNDEBUG
 else
-CXXFLAGS += -Wall -std=c++14
+CXXFLAGS += -Wall -std=c++14 -DNDEBUG
 endif
 
 OBJECTS = main.o kmeans_base.o kmeans.o kmeans_sgd.o kmeans_seq.o

@@ -17,6 +17,10 @@ void kMeans::solve ( void ) {
    randomize();
    computeCentroids();
 
+   // Vector of vectors of changes to be made
+   // changes[k][i] = j means that the element of index j has to be set to label k
+   std::vector< std::vector<int> > changes ( k, std::vector<int> () );
+
    while ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changesCount >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
@@ -24,21 +28,21 @@ void kMeans::solve ( void ) {
       if ( stoppingCriterion.minCentroidDisplacement > 0 )
         oldCentroids = centroids;
 
-      // Vector of vectors of changes to be made
-      // changes[k][i] = j means that the element of index j has to be set to label k
-      std::vector< std::vector<int> > changes ( k, std::vector<int> () );
+      for ( auto & v : changes ) v.clear();
       changesCount = 0;
 
       // Assigns each point to the group of the closest centroid. The changes to
       // be made are initially stored in the vector changes, and are applied only
       // later while broadcasting them to the other processes
+      real nearestDist = 0, d = 0;
+      int nearestLabel = 0;
       for ( unsigned int i = rank; i < dataset.size(); i += size ) {
-         real nearestDist = dist2 ( dataset[i], centroids[0] );
-         int nearestLabel = 0;
+         nearestDist = dist2 ( dataset[i], centroids[0] );
+         nearestLabel = 0;
 
          // Finding the nearest of the centroids
          for ( unsigned int kk = 1; kk < k; ++kk ) {
-            real d = dist2 ( dataset[i], centroids[kk] );
+            d = dist2 ( dataset[i], centroids[kk] );
 
             if ( d < nearestDist ) {
                nearestDist = d;
@@ -65,13 +69,13 @@ void kMeans::solve ( void ) {
 
                auto oldLabel = dataset[idx].getLabel();
 
-               changesCount++;
-
                counts[oldLabel] -= 1;
                counts[kk] += 1;
 
                dataset[idx].setLabel ( kk );
             }
+
+            changesCount += nk;
          }
       }
 

@@ -15,16 +15,23 @@ public:
 private:
    timePoint startTime;
    timePoint stopTime;
+   double cumulate;
 
 public:
-   timer () : startTime ( clock::now() ), stopTime ( clock::now() ) { };
+   timer () : startTime ( clock::now() ), stopTime ( clock::now() ), cumulate( 0 ) { };
    void start ( void ) { startTime = stopTime = clock::now(); };
-   void stop ( void ) { stopTime = clock::now(); };
+
+   void stop ( void ) {
+      stopTime = clock::now();
+      cumulate += getTime();
+   };
 
    double getTime ( void ) const {
       auto tspan = std::chrono::duration_cast<std::chrono::nanoseconds> ( stopTime - startTime );
       return tspan.count() / 1000000.0;
    }
+
+   double getCumulate ( void ) const { return cumulate; }
 };
 
 #endif
