@@ -71,4 +71,10 @@ point operator/ ( const point &, double );
 // Used for parallel computation of the centroids
 void mpi_point_reduce ( point* );
 
+// Point send and receive
+// The dimension of the point is required before when receiving a point, in order
+// to properly allocate memory. These functions communicate labels as well
+void  mpi_point_send ( unsigned int, const point& ); // Send point
+point mpi_point_recv ( unsigned int, unsigned int ); // Receive point
+
 #endif

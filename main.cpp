@@ -36,14 +36,14 @@ void printHelp ( void ) {
         << " -k <clusters> : number of clusters the algorithm should produce\n"
         << " -m|--method <method> : specifies the method to be used; available\n"
         << "      methods are:\n"
-        << "         sequential - performs k-means without parallelization\n"
-        << "         kmeans - performs k-means in parallel\n"
-        << "         kmeansSGD - performs k-means with stochastic gradient descent\n"
-        << "         compare - tests all methods reporting timing results; no\n"
-        << "           output is produced in this case\n"
+        << "       - sequential - performs k-means without parallelization\n"
+        << "       - kmeans - performs k-means in parallel\n"
+        << "       - kmeansSGD - performs k-means with stochastic gradient descent\n"
+        << "       - compare - tests both kmeans and kmeansSGD methods reporting\n"
+        << "         timing results; no output is produced in this case\n"
         << " --purity : enables purity evaluation for the produced clusters\n"
         << " --no-output : disables output result\n"
-        << " --no-log : disables logging\n" << endl;
+        << " -q|--quiet : disables logging\n" << endl;
 }
 
 int main ( int argc, char * argv[] ) {
@@ -62,9 +62,9 @@ int main ( int argc, char * argv[] ) {
    std::string test = cmdLine.follow("g1M-20-5", 2, "-t", "--test" ); // Test name
    std::string method = cmdLine.follow("sequential", 2, "-m", "--method" ); // Method : sequential, kmeans, kmeansSGD, compare
    int k = cmdLine.follow(5, 1, "-k" ); // Number of clusters
-   bool purityTest = cmdLine.search("-p") || cmdLine.search("--purity" ); // Purity flag test
+   bool purityTest = cmdLine.search("-p") || cmdLine.search("--purity"); // Purity flag test
    bool suppressOutput = cmdLine.search("--no-output"); // Disable output
-   bool suppressLog = cmdLine.search("--no-log"); // Disable log
+   bool suppressLog = cmdLine.search("-q") || cmdLine.search("--quiet");; // Disable log
 
    // Read the dataset
    std::ifstream datasetIn ( "./benchmarks/" + test + ".txt" );
@@ -99,6 +99,7 @@ int main ( int argc, char * argv[] ) {
       if ( method != i && method != "compare" ) continue;
       if ( i == "sequential" && (rank != 0 || method == "compare") ) continue;
 
+      // Allocate and configurate the solver
       kMeansBase * solver = nullptr;
 
       // Sequential kMeans
@@ -110,11 +111,13 @@ int main ( int argc, char * argv[] ) {
             solver->setTrueLabels ( trueLabels.begin(), trueLabels.end() );
       }
 
+      // Parallel kMeans
       else if ( i == "kmeans" ) {
          solver = new kMeans ( n, dataset.begin(), dataset.end() );
          solver->setStop ( -1, -1, 1 );
       }
 
+      // Stochastic gradient descent kMeans
       else if ( i == "kmeansSGD" ) {
          auto tmp = new kMeansSGD ( n, dataset.begin(), dataset.end() );
 
@@ -125,7 +128,15 @@ int main ( int argc, char * argv[] ) {
       }
 
       solver->setK ( k );
-      solver->setTrueLabels ( trueLabels.begin(), trueLabels.end() );
+
+      if ( purityTest )
+         solver->setTrueLabels ( trueLabels.begin(), trueLabels.end() );
+
+      // We delete the dataset, if it is no longer necessary
+      if ( method != "compare" ) {
+         dataset.resize(0, point(n));
+         trueLabels.resize(0);
+      }
 
       timer tm;
 
@@ -141,9 +152,9 @@ int main ( int argc, char * argv[] ) {
          clog << "Converged in " << solver->getIter() << " iterations" << endl;
          if ( purityTest ) clog << "Clustering purity: " << purity << endl;
          clog << "-----------------------------------------" << endl;
-
-         // if ( !suppressOutput && method != "compare" ) cout << (*solver);
       }
+
+      if ( !suppressOutput && method != "compare" ) solver->printOutput( cout );
 
       delete solver;
    }

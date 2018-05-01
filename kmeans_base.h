@@ -98,10 +98,15 @@ public:
    // the dataset that were assigned to the corresponding "true" cluster
    // True labels need to be set for the function to work (use setTrueLabels for that...)
    virtual double purity ( void ) const;
+
+   // Output of the dataset on a stream
+   // Output is made in an Octave/MatLab-like syntax to facilitate interaction
+   // with other scripts
+   virtual void printOutput ( std::ostream& ) const;
 };
 
 // Read a vector of integers from a stream
-// Used to read true labels
+// Used to read true labels from file
 std::istream& operator>> ( std::istream&, std::vector<int> & );
 
 #endif

@@ -104,3 +104,43 @@ double kMeansParallelBase::purity ( void ) const {
 void kMeansParallelBase::setTrueLabels ( std::vector<int>::const_iterator a, std::vector<int>::const_iterator b, int offset ) {
    kMeansBase::setTrueLabels ( a + datasetBegin, a + datasetBegin + datasetShare, offset );
 }
+
+void kMeansParallelBase::printOutput ( std::ostream &out ) const {
+   int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
+   int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
+
+   // Process 0 receives the data from the others and prints it
+   if ( rank == 0 ) {
+      // General info about the dataset
+      out << "dim = " << n << ";\nclusters = " << k << ";\n";
+      out << "dataset = [ " << dataset[0];
+
+      // Print process 0's own portion of dataset
+      unsigned int i = 1;
+      for ( ; i < this->size(); ++i )
+         out << ";\n" << dataset[i];
+
+      // Receive and print the others' portions
+      for ( int proc = 1; proc < size; ++proc ) {
+         // First receive the number of points of that process ...
+         int share = 0;
+         MPI_Recv ( &share, 1, MPI_INT, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+
+         // ... then receive and print the actual points
+         for ( int i = 0; i < share; ++i )
+            out << ";\n" << mpi_point_recv ( proc, n );
+      }
+
+      out << "];";
+   }
+
+   // Other processes just send the result to rank 0
+   // First they send the local share of points, then they send the actual points
+   else {
+      int share = datasetShare;
+      MPI_Send ( &share, 1, MPI_INT, 0, 0, MPI_COMM_WORLD );
+
+      for ( int i = 0; i < share; ++i )
+         mpi_point_send ( 0, dataset[i] );
+   }
+}

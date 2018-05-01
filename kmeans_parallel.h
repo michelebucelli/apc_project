@@ -21,6 +21,10 @@ public:
    double purity ( void ) const override;
 
    void setTrueLabels ( std::vector<int>::const_iterator, std::vector<int>::const_iterator, int = -1 ) override;
+
+   // We have to override here because the dataset is split across different processes.
+   // Output is done by process 0, which collects the results from other processes too
+   void printOutput ( std::ostream& ) const override;
 };
 
 #endif

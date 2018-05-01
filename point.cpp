@@ -59,3 +59,18 @@ point operator/ ( const point &a, double t ) {
 void mpi_point_reduce ( point * pt ) {
    MPI_Allreduce ( MPI_IN_PLACE, pt->data(), pt->getN(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 }
+
+void mpi_point_send ( unsigned int dest, const point & pt ) {
+   int label = pt.getLabel();
+   MPI_Send ( &label, 1, MPI_INT, dest, 0, MPI_COMM_WORLD );
+   MPI_Send ( pt.data(), pt.getN(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD );
+}
+
+point mpi_point_recv ( unsigned int src, unsigned int n ) {
+   point result ( n );
+   int label = -1;
+   MPI_Recv ( &label, 1, MPI_INT, src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+   MPI_Recv ( result.data(), n, MPI_DOUBLE, src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE );
+   result.setLabel ( label );
+   return result;
+}

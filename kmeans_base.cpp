@@ -1,6 +1,26 @@
 #include "kmeans_base.h"
 using std::clog; using std::endl;
 
+std::istream& operator>> ( std::istream &in, kMeansDataset &km ) {
+   unsigned int i = 0;
+   unsigned int n = 0;
+   double tmp = 0;
+
+   in >> n;
+   point p ( n );
+
+   while ( in >> tmp ) {
+      p[i] = tmp;
+      if ( i == n - 1 ) {
+         km.push_back(p);
+         i = 0;
+      }
+      else i++;
+   }
+
+   return in;
+}
+
 kMeansBase::kMeansBase ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) : n(nn) {
    dataset.assign ( a, b );
 }
@@ -69,24 +89,15 @@ double kMeansBase::purity ( void ) const {
    return result / dataset.size();
 }
 
-std::istream& operator>> ( std::istream &in, kMeansDataset &km ) {
+void kMeansBase::printOutput ( std::ostream &out ) const {
+   out << "dim = " << n << ";\nclusters = " << k << ";\n";
+   out << "dataset = [ ";
+
    unsigned int i = 0;
-   unsigned int n = 0;
-   double tmp = 0;
+   for ( ; i < size()-1; ++i )
+      out << dataset[i] << ";\n";
 
-   in >> n;
-   point p ( n );
-
-   while ( in >> tmp ) {
-      p[i] = tmp;
-      if ( i == n - 1 ) {
-         km.push_back(p);
-         i = 0;
-      }
-      else i++;
-   }
-
-   return in;
+   out << dataset[i] << "];";
 }
 
 std::istream& operator>> ( std::istream &in, std::vector<int> & out ) {
