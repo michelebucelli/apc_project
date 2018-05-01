@@ -24,13 +24,13 @@ $(EXE) : $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run : $(EXE)
-	mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
+	mpiexec --mca btl ^openib -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
 
 alltests :
 	@ make distclean --silent
 	@ make all OPTIMIZE=$(OPTIMIZE) --silent
 	@ echo
-	@ mpiexec -np 1 ./$(EXE) -t $(TEST) -k $(K) -m sequential --purity --no-output
+	@ mpiexec --mca btl ^openib -np 1 ./$(EXE) -t $(TEST) -k $(K) -m sequential --purity --no-output
 	@ echo
 	@ $(foreach num, 2 3 4 5 6 7 8, mpiexec -np $(num) ./$(EXE) -t $(TEST) -k $(K) -m compare --purity --no-output; echo;)
 
