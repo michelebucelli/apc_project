@@ -24,7 +24,7 @@ void printHelp ( void ) {
    clog << "Purpose: the program takes in input a dataset consisting of points\n"
            "in R^n and performs k-means clustering on it, using one of three\n"
            "possible algorithms, making use of parallel computing where needed." << endl << endl;
-   clog << "Usage: mpirun -np <processes> main.out -t|--test <testname>\n"
+   clog << "Usage: mpirun -np <processes> kmeans -t|--test <testname>\n"
         << "              -k <clusters> -m|--method <method> [--purity]\n"
         << "              [--no-output] [--no-log]" << endl << endl;
    clog << "Output: result of the clustering is printed on the standard output\n"
@@ -174,7 +174,8 @@ int main ( int argc, char * argv[] ) {
          }
 
          else {
-            clog << std::setw(10) << i << " | " << std::setw(10) << tm.getTime() << " msec | " << std::setw(10) << solver->getIter() << " iter";
+            clog << std::setw(10) << i << " | " << std::setw(2) << size << " proc | "
+                 << std::setw(10) << tm.getTime() << " msec | " << std::setw(10) << solver->getIter() << " iter";
             if ( purityTest ) clog << " | " << std::setw(10) << purity << " purity";
             clog << endl;
          }

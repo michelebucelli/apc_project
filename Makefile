@@ -9,7 +9,7 @@ endif
 
 OBJECTS = point.o kmeans_base.o kmeans_parallel.o kmeans.o kmeans_sgd.o kmeans_seq.o main.o
 OUTPUT = output.txt
-EXE = main.out
+EXE = kmeans
 
 NP = 2
 
@@ -25,6 +25,14 @@ $(EXE) : $(OBJECTS)
 
 run : $(EXE)
 	mpiexec -np $(NP) ./$(EXE) $(ARGS) >$(OUTPUT)
+
+alltests :
+	@ make distclean --silent
+	@ make all OPTIMIZE=$(OPTIMIZE) --silent
+	@ echo
+	@ mpiexec -np 1 ./$(EXE) -t $(TEST) -k $(K) -m sequential --purity --no-output
+	@ echo
+	@ $(foreach num, 2 3 4 5 6 7 8, mpiexec -np $(num) ./$(EXE) -t $(TEST) -k $(K) -m compare --purity --no-output; echo;)
 
 plot : $(OUTPUT)
 	@ octave plotScript.m
