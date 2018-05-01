@@ -17,9 +17,6 @@ void kMeans::solve ( void ) {
    randomize();
    computeCentroids();
 
-   timer compTime;
-   timer commTime;
-
    // Vector of vectors of changes to be made
    // changes[k][i] = j means that the element of index j has to be set to label k
    // std::vector< std::vector<int> > changes ( k, std::vector<int> () );
@@ -27,8 +24,6 @@ void kMeans::solve ( void ) {
    while ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
         && (stoppingCriterion.minLabelChanges <= 0 || changesCount >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
-
-      compTime.start();
 
       if ( stoppingCriterion.minCentroidDisplacement > 0 )
         oldCentroids = centroids;
@@ -66,14 +61,9 @@ void kMeans::solve ( void ) {
          }
       }
 
-      compTime.stop();
-      commTime.start();
-
       // Recomputes the centroids in the current configuration
       computeCentroids();
       MPI_Allreduce ( MPI_IN_PLACE, &changesCount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
-
-      commTime.stop();
 
       // Compute the max displacement of the centroids
       if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
@@ -87,7 +77,5 @@ void kMeans::solve ( void ) {
 
       ++iter;
    }
-
-   if ( rank == 0 ) clog << compTime.getCumulate() << " " << commTime.getCumulate() << endl;
 
 }

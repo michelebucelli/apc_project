@@ -5,6 +5,7 @@
 #include "timer.h"
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <cstdlib>
 #include <string>
@@ -64,10 +65,23 @@ int main ( int argc, char * argv[] ) {
    int k = cmdLine.follow(5, 1, "-k" ); // Number of clusters
    bool purityTest = cmdLine.search("-p") || cmdLine.search("--purity"); // Purity flag test
    bool suppressOutput = cmdLine.search("--no-output"); // Disable output
-   bool suppressLog = cmdLine.search("-q") || cmdLine.search("--quiet");; // Disable log
+   bool suppressLog = cmdLine.search("-q") || cmdLine.search("--quiet"); // Disable log
+   bool verbose = cmdLine.search("-v") || cmdLine.search("--verbose"); // Verbose log
+
+   if ( rank == 0 && !suppressLog && verbose ) {
+      clog << "-----------------------------------------" << endl;
+      clog << "Dataset source: ./benchmarks/" << test << ".txt" << endl;
+      if ( purityTest ) clog << "True labels source: ./benchmarks/" << test << "-truelabels.txt" << endl;
+   }
 
    // Read the dataset
    std::ifstream datasetIn ( "./benchmarks/" + test + ".txt" );
+
+   if ( datasetIn.fail() ) {
+      if ( rank == 0 ) clog << "Error: couldn't read dataset file" << endl;
+      return 1;
+   }
+
    kMeansDataset dataset;
    datasetIn >> dataset;
    unsigned int n = dataset[0].getN();
@@ -75,19 +89,23 @@ int main ( int argc, char * argv[] ) {
 
    // Read the true labels
    std::ifstream trueLabelsIn ( "./benchmarks/" + test + "-truelabels.txt" );
+
+   if ( purityTest && trueLabelsIn.fail() ) {
+      if ( rank == 0 ) clog << "Error: couldn't read true labels file" << endl;
+      return 1;
+   }
+
    std::vector<int> trueLabels;
    trueLabelsIn >> trueLabels;
    trueLabelsIn.close();
 
    // Dataset info on log
-   if ( rank == 0 && !suppressLog ) {
+   if ( rank == 0 && !suppressLog && verbose ) {
       clog << "-----------------------------------------" << endl;
       clog << "Test name: " << test << endl;
-      clog << "Dataset source: ./benchmarks/" << test << ".txt" << endl;
       clog << "Dataset size: " << dataset.size() << endl;
       clog << "Dataset dimension: " << n << endl;
       clog << "Clusters: " << k << endl;
-      if ( purityTest ) clog << "True labels source: ./benchmarks/" << test << "-truelabels.txt" << endl;
       clog << "-----------------------------------------" << endl;
    }
 
@@ -147,11 +165,19 @@ int main ( int argc, char * argv[] ) {
       double purity = purityTest ? solver->purity() : 0;
 
       if ( rank == 0 && !suppressLog ) {
-         clog << "Method: " << i << endl;
-         clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
-         clog << "Converged in " << solver->getIter() << " iterations" << endl;
-         if ( purityTest ) clog << "Clustering purity: " << purity << endl;
-         clog << "-----------------------------------------" << endl;
+         if ( verbose ) {
+            clog << "Method: " << i << endl;
+            clog << "Elapsed time: " << tm.getTime() << " msec" << endl;
+            clog << "Converged in " << solver->getIter() << " iterations" << endl;
+            if ( purityTest ) clog << "Clustering purity: " << purity << endl;
+            clog << "-----------------------------------------" << endl;
+         }
+
+         else {
+            clog << std::setw(10) << i << " | " << std::setw(10) << tm.getTime() << " msec | " << std::setw(10) << solver->getIter() << " iter";
+            if ( purityTest ) clog << " | " << std::setw(10) << purity << " purity";
+            clog << endl;
+         }
       }
 
       if ( !suppressOutput && method != "compare" ) solver->printOutput( cout );
