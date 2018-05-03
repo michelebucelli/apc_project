@@ -95,40 +95,6 @@ void kMeansSGD::solve ( void ) {
 
       MPI_Allreduce ( MPI_IN_PLACE, &changesCount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
 
-      // Now processes communicate the changes they have made
-      // Each process broadcasts for each label kk the number of points that have been
-      // assigned to that label during this iteration (i.e. changes[kk].size), then
-      // broadcasts the indices of those points one by one
-      /* for ( int i = 0; i < size; ++i ) { // For each process...
-         for ( unsigned int kk = 0; kk < k; ++kk ) { // ...and for each label
-            int nk = changes[kk].size();
-            MPI_Bcast ( &nk, 1, MPI_INT, i, MPI_COMM_WORLD );
-
-            for ( int j = 0; j < nk; ++j ) {
-               int idx = rank == i ? changes[kk][j] : 0;
-               MPI_Bcast ( &idx, 1, MPI_INT, i, MPI_COMM_WORLD );
-
-               auto oldLabel = dataset[idx].getLabel();
-
-               changesCount++;
-
-               counts[oldLabel] -= 1;
-               counts[kk] += 1;
-
-               // Since with this algorithm the amount of changes will be relatively
-               // small (surely <= batchSize, very likely << batchSize, especially
-               // when approaching convergence) it is much more efficient to update
-               // centroids with changes rather than recomputing them
-               for ( unsigned int nn = 0; nn < n; ++nn ) {
-                  centroids[kk][nn] += ( dataset[idx][nn] - centroids[kk][nn] ) / counts[kk];
-                  centroids[oldLabel][nn] += ( centroids[oldLabel][nn] - dataset[idx][nn] ) / counts[oldLabel];
-               }
-
-               dataset[idx].setLabel ( kk );
-            }
-         }
-      }*/
-
       // Compute the max displacement of the centroids for the stopping criterion
       if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
          centroidDispl = 0;

@@ -56,7 +56,8 @@ int main ( int argc, char * argv[] ) {
    GetPot cmdLine ( argc, argv );
 
    if ( cmdLine.search("-h") || cmdLine.search("--help") ) {
-      printHelp();
+      if ( rank == 0 ) printHelp();
+      MPI_Finalize();
       return 0;
    }
 
