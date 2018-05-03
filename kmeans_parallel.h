@@ -10,9 +10,9 @@
 class kMeansParallelBase : public kMeansBase {
 protected:
    // Info about the portion of dataset assigned to the process
-   int datasetSize = 0;
-   int datasetShare = 0;
-   int datasetBegin = 0;
+   int datasetSize = 0; // Size of the complete dataset
+   int datasetShare = 0; // Size of the local share of the dataset
+   int datasetBegin = 0; // Index of the complete dataset where the local portion begins
 public:
    kMeansParallelBase ( unsigned int, kMeansDataset::const_iterator, kMeansDataset::const_iterator );
 
