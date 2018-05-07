@@ -7,11 +7,9 @@ void kMeansSeq::computeCentroids ( void ) {
 
    for ( auto & i : dataset ) {
       int lab = i.getLabel();
-      centroids[lab] += i;
+      for ( unsigned int nn = 0; nn < n; ++nn )
+         centroids[lab][nn] += i[nn] / counts[lab];
    }
-
-   for ( unsigned int kk = 0; kk < k; ++kk )
-      centroids[kk] = centroids[kk] / counts[kk];
 }
 
 void kMeansSeq::solve ( void ) {
@@ -30,7 +28,9 @@ void kMeansSeq::solve ( void ) {
         && (stoppingCriterion.minLabelChanges <= 0 || changes >= stoppingCriterion.minLabelChanges)
         && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
 
-      oldCentroids = centroids;
+      if ( stoppingCriterion.minCentroidDisplacement > 0 )
+         oldCentroids = centroids;
+
       changes = 0;
 
       // Assigns each point to the group of the closest centroid
@@ -47,13 +47,14 @@ void kMeansSeq::solve ( void ) {
             }
          }
 
-         if ( dataset[i].getLabel() != nearestLabel ) {
+         int oldLabel = dataset[i].getLabel();
+         if ( oldLabel != nearestLabel ) {
             changes++;
-            counts[dataset[i].getLabel()]--;
+            counts[oldLabel]--;
             counts[nearestLabel]++;
+            dataset[i].setLabel(nearestLabel);
          }
 
-         dataset[i].setLabel(nearestLabel);
       }
 
       // Computes the centroids in the current configuration
