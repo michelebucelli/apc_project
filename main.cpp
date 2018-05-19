@@ -119,11 +119,11 @@ int main ( int argc, char * argv[] ) {
       if ( i == "sequential" && (rank != 0 || method == "compare") ) continue;
 
       // Allocate and configurate the solver
-      kMeansBase * solver = nullptr;
+      kMeansBase<dist_euclidean> * solver = nullptr;
 
       // Sequential kMeans
       if ( i == "sequential" ) {
-         solver = new kMeansSeq ( n, dataset.begin(), dataset.end() );
+         solver = new kMeansSeq<> ( n, dataset.begin(), dataset.end() );
          solver->setStop ( 100, -1, 1 );
 
          if ( purityTest )
@@ -132,13 +132,13 @@ int main ( int argc, char * argv[] ) {
 
       // Parallel kMeans
       else if ( i == "kmeans" ) {
-         solver = new kMeansG ( n, dataset.begin(), dataset.end() );
+         solver = new kMeansG<dist_euclidean> ( n, dataset.begin(), dataset.end() );
          solver->setStop ( -1, -1, 1 );
       }
 
       // Stochastic gradient descent kMeans
       else if ( i == "kmeansSGD" ) {
-         auto tmp = new kMeansSGD ( n, dataset.begin(), dataset.end() );
+         auto tmp = new kMeansSGD<dist_euclidean> ( n, dataset.begin(), dataset.end() );
 
          tmp->setBatchSize ( 1000 );
          tmp->setStop ( -1, -1, 50 );

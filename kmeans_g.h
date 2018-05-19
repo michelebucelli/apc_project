@@ -4,40 +4,37 @@
 #include "kmeans_parallel.h"
 #include "timer.h"
 
-class kMeansG : public kMeansParallelBase {
+template<typename dist_type = dist_euclidean>
+class kMeansG : public kMeansParallelBase<dist_type> {
 public:
    kMeansG ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) :
-      kMeansParallelBase ( nn, a, b ) { }
+      kMeansParallelBase<dist_type> ( nn, a, b ) { }
 
    // Solve method
    void solve ( void ) override;
 };
 
-void kMeansG::solve ( void ) {
+template<typename dist_type>
+void kMeansG<dist_type>::solve ( void ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 
-   iter = 0;
+   this->iter = 0;
 
-   int changesCount = stoppingCriterion.minLabelChanges + 1;
-   double centroidDispl = stoppingCriterion.minCentroidDisplacement + 1;
+   int changesCount = this->stoppingCriterion.minLabelChanges + 1;
+   double centroidDispl = this->stoppingCriterion.minCentroidDisplacement + 1;
    std::vector<point> oldCentroids;
 
-   randomize();
-   computeCentroids();
+   this->randomize();
+   this->computeCentroids();
 
-   // Vector of vectors of changes to be made
-   // changes[k][i] = j means that the element of index j has to be set to label k
-   // std::vector< std::vector<int> > changes ( k, std::vector<int> () );
+   while ( (this->stoppingCriterion.maxIter <= 0 || this->iter < this->stoppingCriterion.maxIter)
+        && (this->stoppingCriterion.minLabelChanges <= 0 || changesCount >= this->stoppingCriterion.minLabelChanges)
+        && (this->stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= this->stoppingCriterion.minCentroidDisplacement) ) {
 
-   while ( (stoppingCriterion.maxIter <= 0 || iter < stoppingCriterion.maxIter)
-        && (stoppingCriterion.minLabelChanges <= 0 || changesCount >= stoppingCriterion.minLabelChanges)
-        && (stoppingCriterion.minCentroidDisplacement <= 0 || centroidDispl >= stoppingCriterion.minCentroidDisplacement) ) {
+      if ( this->stoppingCriterion.minCentroidDisplacement > 0 )
+        oldCentroids = this->centroids;
 
-      if ( stoppingCriterion.minCentroidDisplacement > 0 )
-        oldCentroids = centroids;
-
-      // for ( auto & v : changes ) v.clear();
       changesCount = 0;
 
       // Assigns each point to the group of the closest centroid. The changes to
@@ -47,13 +44,13 @@ void kMeansG::solve ( void ) {
       double nearestDist = 0, d = 0;
       int nearestLabel = 0;
 
-      for ( unsigned int i = 0; i < dataset.size(); i += 1 ) {
-         nearestDist = dist2 ( dataset[i], centroids[0] );
+      for ( unsigned int i = 0; i < this->dataset.size(); i += 1 ) {
+         nearestDist = this->dist ( this->dataset[i], this->centroids[0] );
          nearestLabel = 0;
 
          // Finding the nearest of the centroids
-         for ( unsigned int kk = 1; kk < k; ++kk ) {
-            d = dist2 ( dataset[i], centroids[kk] );
+         for ( unsigned int kk = 1; kk < this->k; ++kk ) {
+            d = this->dist ( this->dataset[i], this->centroids[kk] );
 
             if ( d < nearestDist ) {
                nearestDist = d;
@@ -61,30 +58,30 @@ void kMeansG::solve ( void ) {
             }
          }
 
-         int oldLabel = dataset[i].getLabel();
+         int oldLabel = this->dataset[i].getLabel();
          if ( oldLabel != nearestLabel ) {
-            counts[oldLabel] -= 1;
-            counts[nearestLabel] += 1;
-            dataset[i].setLabel(nearestLabel);
+            this->counts[oldLabel] -= 1;
+            this->counts[nearestLabel] += 1;
+            this->dataset[i].setLabel(nearestLabel);
             changesCount++;
          }
       }
 
       // Recomputes the centroids in the current configuration
-      computeCentroids();
+      this->computeCentroids();
       MPI_Allreduce ( MPI_IN_PLACE, &changesCount, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
 
       // Compute the max displacement of the centroids
-      if ( stoppingCriterion.minCentroidDisplacement > 0 ) {
+      if ( this->stoppingCriterion.minCentroidDisplacement > 0 ) {
          centroidDispl = 0;
-         for ( unsigned kk = 0; kk < k; kk += 1 ) {
-            double displ = dist2 ( oldCentroids[kk], centroids[kk] );
+         for ( unsigned kk = 0; kk < this->k; kk += 1 ) {
+            double displ = this->dist ( oldCentroids[kk], this->centroids[kk] );
             if ( displ > centroidDispl ) centroidDispl = displ;
          }
          centroidDispl = sqrt(centroidDispl);
       }
 
-      ++iter;
+      ++this->iter;
    }
 
 }

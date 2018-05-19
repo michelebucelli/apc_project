@@ -11,18 +11,6 @@ std::ostream& operator<< ( std::ostream& out, const point &pt ) {
    return out;
 }
 
-double dist2 ( const point& a, const point& b ) {
-   assert ( a.getN() == b.getN() );
-
-   double sum = 0; double x = 0;
-   for ( unsigned int i = 0; i < a.getN(); ++i ) {
-      x = a[i] - b[i];
-      sum += x*x;
-   }
-
-   return sum;
-}
-
 point operator+ ( const point& a, const point& b ) {
    assert ( a.getN() == b.getN() );
 

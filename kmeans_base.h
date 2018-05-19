@@ -28,8 +28,14 @@ typedef std::vector<point> kMeansDataset;
 std::istream& operator>> ( std::istream &, kMeansDataset & );
 
 // K-means solver base class
-class kMeansBase {
+// The template parameter is a type that has a member function dist that takes
+// two const point& parameters and computes the distance between the points,
+// according to the desired metric
+template<typename dist_type = dist_euclidean>
+class kMeansBase : public dist_type {
 protected:
+   using dist_type::dist;
+   
    // Number of clusters we are looking for
    unsigned int k = 1;
 
@@ -129,17 +135,20 @@ std::istream& operator>> ( std::istream &in, kMeansDataset &km ) {
    return in;
 }
 
-kMeansBase::kMeansBase ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) : n(nn) {
+template <typename dist_type>
+kMeansBase<dist_type>::kMeansBase ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) : n(nn) {
    dataset.assign ( a, b );
 }
 
-void kMeansBase::setK ( unsigned int kk ) {
+template <typename dist_type>
+void kMeansBase<dist_type>::setK ( unsigned int kk ) {
    k = kk;
    centroids = std::vector<point> ( kk, point(n) );
    counts = std::vector<int> ( kk, 0 );
 }
 
-void kMeansBase::randomize ( void ) {
+template <typename dist_type>
+void kMeansBase<dist_type>::randomize ( void ) {
    std::default_random_engine eng;
    std::uniform_int_distribution<unsigned int> dist ( 0, k - 1 );
 
@@ -153,7 +162,8 @@ void kMeansBase::randomize ( void ) {
    }
 }
 
-void kMeansBase::setTrueLabels ( std::vector<int>::const_iterator a, std::vector<int>::const_iterator b, int offset ) {
+template <typename dist_type>
+void kMeansBase<dist_type>::setTrueLabels ( std::vector<int>::const_iterator a, std::vector<int>::const_iterator b, int offset ) {
    auto cur = a;
    for ( unsigned int i = 0; i < (b - a); ++i ) {
       dataset[i].setTrueLabel ( (*cur) + offset );
@@ -161,7 +171,8 @@ void kMeansBase::setTrueLabels ( std::vector<int>::const_iterator a, std::vector
    }
 }
 
-double kMeansBase::purity ( void ) const {
+template<typename dist_type>
+double kMeansBase<dist_type>::purity ( void ) const {
    // True labels of the clusters
    std::vector<int> trueLabels ( k, -1 );
 
@@ -197,7 +208,8 @@ double kMeansBase::purity ( void ) const {
    return result / dataset.size();
 }
 
-void kMeansBase::printOutput ( std::ostream &out ) const {
+template<typename dist_type>
+void kMeansBase<dist_type>::printOutput ( std::ostream &out ) const {
    out << "dim = " << n << ";\nclusters = " << k << ";\n";
    out << "dataset = [ ";
 
