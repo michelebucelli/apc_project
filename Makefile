@@ -7,7 +7,7 @@ else
 CXXFLAGS += -Wall -std=c++14 -DNDEBUG
 endif
 
-OBJECTS = point.o kmeans_base.o kmeans_parallel.o kmeans_g.o kmeans_sgd.o kmeans_seq.o main.o
+OBJECTS = point.o main.o
 OUTPUT = output.txt
 EXE = kmeans
 
