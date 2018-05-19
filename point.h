@@ -57,22 +57,6 @@ public:
 // <label> <coord. 0> <coord. 1> ... <coord. N>
 std::ostream& operator<< ( std::ostream&, const point& );
 
-// Euclidean distance class
-class dist_euclidean {
-   public:
-   double dist ( const point & a, const point & b ) {
-      assert ( a.getN() == b.getN() );
-
-      double sum = 0; double x = 0;
-      for ( unsigned int i = 0; i < a.getN(); ++i ) {
-         x = a[i] - b[i];
-         sum += x*x;
-      }
-
-      return sum;
-   }
-};
-
 // Element-wise operations between points
 // Useful for calculating centroids
 point operator+ ( const point &, const point & );

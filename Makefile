@@ -16,7 +16,7 @@ NP = 2
 METHOD = kmeans
 TEST = g1M-20-5
 K = 5
-ARGS = -t $(TEST) -k $(K) -m $(METHOD) --purity --no-output
+ARGS = -t $(TEST) -k $(K) -m $(METHOD) --purity
 
 all : $(EXE)
 

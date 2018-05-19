@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include "point.h"
+#include "distance.h"
 
 struct kMeansStop {
    // Maximum iterations
@@ -35,7 +36,7 @@ template<typename dist_type = dist_euclidean>
 class kMeansBase : public dist_type {
 protected:
    using dist_type::dist;
-   
+
    // Number of clusters we are looking for
    unsigned int k = 1;
 
