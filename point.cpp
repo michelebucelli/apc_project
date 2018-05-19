@@ -56,7 +56,7 @@ point operator/ ( const point &a, double t ) {
    return result;
 }
 
-void mpi_point_reduce ( point * pt ) {
+void mpi_point_allreduce ( point * pt ) {
    MPI_Allreduce ( MPI_IN_PLACE, pt->data(), pt->getN(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 }
 

@@ -53,7 +53,7 @@ void kMeansParallelBase::computeCentroids ( void ) {
 
    // Partial sums are collected and the average is calculated
    for ( unsigned int kk = 0; kk < k; ++kk ) {
-      mpi_point_reduce ( &centroids[kk] );
+      mpi_point_allreduce ( &centroids[kk] );
       centroids[kk] = centroids[kk] / allcounts[kk];
    }
 }

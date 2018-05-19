@@ -1,5 +1,5 @@
 #include "kmeans_seq.h"
-#include "kmeans.h"
+#include "kmeans_g.h"
 #include "kmeans_sgd.h"
 
 #include "timer.h"
@@ -132,7 +132,7 @@ int main ( int argc, char * argv[] ) {
 
       // Parallel kMeans
       else if ( i == "kmeans" ) {
-         solver = new kMeans ( n, dataset.begin(), dataset.end() );
+         solver = new kMeansG ( n, dataset.begin(), dataset.end() );
          solver->setStop ( -1, -1, 1 );
       }
 

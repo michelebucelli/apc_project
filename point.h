@@ -69,7 +69,7 @@ point operator/ ( const point &, double );
 
 // Sum points across processes
 // Used for parallel computation of the centroids
-void mpi_point_reduce ( point* );
+void mpi_point_allreduce ( point* );
 
 // Point send and receive
 // The dimension of the point is required before when receiving a point, in order

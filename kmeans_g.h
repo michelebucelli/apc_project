@@ -3,9 +3,9 @@
 
 #include "kmeans_parallel.h"
 
-class kMeans : public kMeansParallelBase {
+class kMeansG : public kMeansParallelBase {
 public:
-   kMeans ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) :
+   kMeansG ( unsigned int nn, kMeansDataset::const_iterator a, kMeansDataset::const_iterator b ) :
       kMeansParallelBase ( nn, a, b ) { }
 
    // Solve method

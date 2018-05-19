@@ -88,7 +88,7 @@ void kMeansSGD::solve ( void ) {
       MPI_Allreduce ( counts.data(), newGlobalCounts.data(), k, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
 
       for ( unsigned int kk = 0; kk < k; ++kk ) {
-         mpi_point_reduce ( &centroidDiff[kk] );
+         mpi_point_allreduce ( &centroidDiff[kk] );
          for ( unsigned int nn = 0; nn < n; ++nn )
             centroids[kk][nn] = ( centroids[kk][nn] * oldGlobalCounts[kk] + centroidDiff[kk][nn] ) / newGlobalCounts[kk];
       }

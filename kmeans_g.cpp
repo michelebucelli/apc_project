@@ -1,10 +1,10 @@
-#include "kmeans.h"
+#include "kmeans_g.h"
 #include <iostream>
 #include <iomanip>
 #include "timer.h"
 using std::clog; using std::endl; using std::flush;
 
-void kMeans::solve ( void ) {
+void kMeansG::solve ( void ) {
    int size; MPI_Comm_size ( MPI_COMM_WORLD, &size );
    int rank; MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 
